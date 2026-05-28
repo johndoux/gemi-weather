@@ -10,7 +10,7 @@ interface ErrorScreenProps {
 export function ErrorScreen({ message, onRetry }: ErrorScreenProps) {
   return (
     <View style={styles.container}>
-      <Text style={styles.emoji}>😕</Text>
+      <Text style={styles.emoji}>{strings.error_emoji}</Text>
       <Text style={[styles.message, { fontFamily: fonts.regular }]}>
         {message ?? strings.error_message}
       </Text>

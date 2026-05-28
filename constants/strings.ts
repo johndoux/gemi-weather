@@ -2,6 +2,9 @@ export const strings = {
   // ── Loading ──────────────────────────────────────────────────────────────
   loading_mark: '?',
 
+  // ── Error screen ─────────────────────────────────────────────────────────
+  error_emoji: '😕',
+
   // ── Location input ───────────────────────────────────────────────────────
   location_heading:       'Where are you?',
   location_subtext:       'Enter your city or zip code',

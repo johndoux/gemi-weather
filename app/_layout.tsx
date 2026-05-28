@@ -4,7 +4,7 @@ import {
 } from '@expo-google-fonts/varela-round';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
+import 'react-native-reanimated'; // required side-effect for Reanimated on the new architecture
 
 export const unstable_settings = {
   anchor: '(tabs)',

@@ -6,26 +6,16 @@ import { MonsterCharacter } from '@/components/monster-character';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useWeatherContext } from '@/contexts/weather-context';
 import { color, fonts, fontSize, iconSize, lineHeight, radius, shadow, size, spacing, zIndex } from '@/constants/theme';
-import { ConditionKey, getWeatherVerdict } from '@/constants/weather';
+import { ConditionKey, getWeatherVerdict, WEATHER_ICONS } from '@/constants/weather';
 import * as Haptics from 'expo-haptics';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { ComponentProps, useCallback, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const WEATHER_ICONS: Record<ConditionKey, ComponentProps<typeof MaterialIcons>['name']> = {
-  clear:   'wb-sunny',
-  night:   'nights-stay',
-  cloudy:  'wb-cloudy',
-  foggy:   'foggy',
-  drizzle: 'grain',
-  rain:    'umbrella',
-  snow:    'ac-unit',
-  storm:   'thunderstorm',
-};
 
 export default function HomeScreen() {
   const weather = useWeatherContext();
@@ -108,7 +98,7 @@ export default function HomeScreen() {
               </View>
 
               <View style={styles.tempRow}>
-                <MaterialIcons name={WEATHER_ICONS[condition]} size={iconSize.huge} color={palette.iconColor} />
+                <MaterialIcons name={WEATHER_ICONS[condition] as any} size={iconSize.huge} color={palette.iconColor} />
                 <Text style={[styles.temperature, { color: palette.text, fontFamily: fonts.bold }]}>
                   {Math.round(weather.apparentTempF)}°
                 </Text>

@@ -52,7 +52,7 @@ export const radius = {
 // ─── Sizing ───────────────────────────────────────────────────────────────────
 export const size = {
   iconBtn:     40,
-  tipBtnWidth: '80%' as const,
+  tipBtnWidth: '80%' as const, // percentage string — valid in RN StyleSheet
   minBtnWidth: 200,
 } as const;
 

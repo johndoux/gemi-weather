@@ -51,7 +51,7 @@ export default function LocationScreen() {
         setManualLocation={weather.setManualLocation}
         isResolving={isResolving}
         error={error}
-        canAskAgain={true}
+        canAskAgain={weather.status === 'ok' ? weather.canUseGPS : true}
       />
 
       {weather.status === 'ok' && weather.canUseGPS && (

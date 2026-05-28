@@ -1,3 +1,4 @@
+import type { ProductIOS } from 'expo-iap';
 import { ACKNOWLEDGEMENTS } from '@/constants/acknowledgements';
 import { TIP_PRODUCT_IDS } from '@/constants/iap';
 import { strings } from '@/constants/strings';
@@ -37,10 +38,6 @@ interface MenuModalProps {
   onClose: () => void;
 }
 
-interface TipProduct {
-  id: string;
-  displayPrice?: string;
-}
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const ACK_HEIGHT    = SCREEN_HEIGHT - 85;
@@ -119,7 +116,7 @@ function MenuRow({ label, onPress, icon, iconSymbol }: {
 }
 
 function TipJarContent({ onBack, onClose }: { onBack: () => void; onClose: () => void }) {
-  const [products, setProducts] = useState<TipProduct[]>([]);
+  const [products, setProducts] = useState<ProductIOS[]>([]);
   const [loading,  setLoading]  = useState(true);
   const [thankYou, setThankYou] = useState(false);
 
@@ -130,8 +127,10 @@ function TipJarContent({ onBack, onClose }: { onBack: () => void; onClose: () =>
       try {
         await IAPModule!.initConnection();
         const prods = await IAPModule!.fetchProducts({ skus: [...TIP_PRODUCT_IDS], type: 'in-app' });
-        setProducts((prods ?? []) as unknown as TipProduct[]);
-      } catch {}
+        setProducts((prods as ProductIOS[]) ?? []);
+      } catch (e) {
+        if (__DEV__) console.warn('[TipJar] fetchProducts failed:', e);
+      }
       setLoading(false);
     }
 
@@ -140,7 +139,9 @@ function TipJarContent({ onBack, onClose }: { onBack: () => void; onClose: () =>
       try {
         await IAPModule!.finishTransaction({ purchase, isConsumable: true });
         setThankYou(true);
-      } catch {}
+      } catch (e) {
+        if (__DEV__) console.warn('[TipJar] finishTransaction failed:', e);
+      }
     });
 
     load();
@@ -157,7 +158,9 @@ function TipJarContent({ onBack, onClose }: { onBack: () => void; onClose: () =>
         type: 'in-app',
         request: { apple: { sku: id }, google: { skus: [id] } },
       });
-    } catch {}
+    } catch (e) {
+      if (__DEV__) console.warn('[TipJar] requestPurchase failed:', e);
+    }
   }
 
   return (

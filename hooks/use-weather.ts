@@ -34,6 +34,12 @@ type WeatherState =
     }
   | { status: 'error'; message: string };
 
+export type UseWeatherReturn = WeatherState & {
+  refresh: () => Promise<void>;
+  refreshGPSLocation: () => Promise<void>;
+  setManualLocation: (text: string) => Promise<void>;
+};
+
 async function loadCache(): Promise<CachedLocation | null> {
   try {
     const raw = await SecureStore.getItemAsync(STORE_KEY);
@@ -47,7 +53,9 @@ async function loadCache(): Promise<CachedLocation | null> {
 async function saveCache(loc: CachedLocation): Promise<void> {
   try {
     await SecureStore.setItemAsync(STORE_KEY, JSON.stringify(loc));
-  } catch {}
+  } catch (e) {
+    if (__DEV__) console.warn('[useWeather] saveCache failed:', e);
+  }
 }
 
 async function fetchWeather(lat: number, lon: number) {
@@ -62,7 +70,6 @@ async function fetchWeather(lat: number, lon: number) {
   const data = await res.json();
   return {
     apparentTempF: data.current.apparent_temperature as number,
-    windSpeedMph:  data.current.wind_speed_10m as number,
     weatherCode:   data.current.weather_code as number,
     isDay:         data.current.is_day === 1,
   };
@@ -81,6 +88,8 @@ async function runGPSFlow(): Promise<CachedLocation> {
   return loc;
 }
 
+// Returns a setState updater — passed directly to setState(locationErrorUpdater(msg))
+// which React calls as a functional update: setState(prev => ...).
 function locationErrorUpdater(msg: string) {
   return (prev: WeatherState): WeatherState => {
     if (prev.status === 'needs-location') return { ...prev, isResolving: false, locationError: msg };
@@ -89,7 +98,7 @@ function locationErrorUpdater(msg: string) {
   };
 }
 
-export function useWeather() {
+export function useWeather(): UseWeatherReturn {
   const [state, setState] = useState<WeatherState>({ status: 'loading' });
   const lastFetchRef = useRef<number>(0);
   const coordsRef = useRef<{ lat: number; lon: number } | null>(null);
@@ -122,6 +131,9 @@ export function useWeather() {
         isGPSRefreshing: false,
       });
     },
+    // [] is correct — gpsPermittedRef, canAskGPSRef, coordsRef, and locationGenRef
+    // are refs with stable identity; .current is always the latest value without
+    // them needing to be in the dependency array.
     []
   );
 
@@ -133,9 +145,11 @@ export function useWeather() {
       lastFetchRef.current = Date.now();
       setState((prev) => {
         if (prev.status !== 'ok') return prev;
-        return { ...prev, apparentTempF: weather.apparentTempF, windSpeedMph: weather.windSpeedMph, weatherCode: weather.weatherCode, isDay: weather.isDay };
+        return { ...prev, apparentTempF: weather.apparentTempF, weatherCode: weather.weatherCode, isDay: weather.isDay };
       });
-    } catch {}
+    } catch (e) {
+      if (__DEV__) console.warn('[useWeather] refresh failed:', e);
+    }
   }, []);
 
   const refreshGPSLocation = useCallback(async () => {
@@ -162,7 +176,8 @@ export function useWeather() {
       const loc = await runGPSFlow();
       if (locationGenRef.current !== gen) return;
       await fetchAndSetOk(loc.lat, loc.lon, loc.cityName, gen);
-    } catch {
+    } catch (e) {
+      if (__DEV__) console.warn('[useWeather] refreshGPSLocation failed:', e);
       if (locationGenRef.current !== gen) return;
       setState((prev) => {
         if (prev.status !== 'ok') return prev;
@@ -209,19 +224,66 @@ export function useWeather() {
   useEffect(() => {
     let cancelled = false;
 
-    async function init() {
+    async function handleNoCache(perm: Location.LocationPermissionResponse): Promise<void> {
+      if (perm.status === 'undetermined') {
+        let requested: Location.LocationPermissionResponse;
+        try {
+          requested = await Location.requestForegroundPermissionsAsync();
+        } catch {
+          setState({ status: 'needs-location', isResolving: false, canAskAgain: true });
+          return;
+        }
+        if (requested.status === 'granted') {
+          gpsPermittedRef.current = true;
+          canAskGPSRef.current = false;
+          try {
+            const loc = await runGPSFlow();
+            if (!cancelled) await fetchAndSetOk(loc.lat, loc.lon, loc.cityName, 0);
+          } catch {
+            if (!cancelled) setState({ status: 'needs-location', isResolving: false, canAskAgain: requested.canAskAgain ?? true });
+          }
+        } else {
+          canAskGPSRef.current = requested.canAskAgain ?? false;
+          if (!cancelled) setState({ status: 'needs-location', isResolving: false, canAskAgain: requested.canAskAgain ?? false });
+        }
+      } else {
+        setState({ status: 'needs-location', isResolving: false, canAskAgain: perm.canAskAgain ?? true });
+      }
+    }
+
+    async function handleGranted(cache: CachedLocation | null): Promise<void> {
+      try {
+        const loc = await runGPSFlow();
+        if (!cancelled) await fetchAndSetOk(loc.lat, loc.lon, loc.cityName, 0);
+      } catch {
+        if (cache && !cancelled) {
+          await fetchAndSetOk(cache.lat, cache.lon, cache.cityName, 0);
+        } else if (!cancelled) {
+          setState({ status: 'error', message: strings.error_gps });
+        }
+      }
+    }
+
+    async function handleCacheOnly(cache: CachedLocation): Promise<void> {
+      try {
+        await fetchAndSetOk(cache.lat, cache.lon, cache.cityName, 0);
+      } catch (e) {
+        if (__DEV__) console.warn('[useWeather] handleCacheOnly: weather fetch failed:', e);
+        if (!cancelled) setState({ status: 'error', message: strings.error_weather_fetch });
+      }
+    }
+
+    async function init(): Promise<void> {
       const cache = await loadCache();
       if (cancelled) return;
 
       let perm: Location.LocationPermissionResponse;
       try {
         perm = await Location.getForegroundPermissionsAsync();
-      } catch {
-        if (cache) {
-          await fetchAndSetOk(cache.lat, cache.lon, cache.cityName, 0);
-        } else {
-          setState({ status: 'error', message: strings.error_permissions });
-        }
+      } catch (e) {
+        if (__DEV__) console.warn('[useWeather] init: could not check location permissions:', e);
+        if (cache) await fetchAndSetOk(cache.lat, cache.lon, cache.cityName, 0);
+        else setState({ status: 'error', message: strings.error_permissions });
         return;
       }
 
@@ -234,56 +296,9 @@ export function useWeather() {
         canAskGPSRef.current = canAskAgain;
       }
 
-      if (!cache && !granted) {
-        if (perm.status === 'undetermined') {
-          let requested: Location.LocationPermissionResponse;
-          try {
-            requested = await Location.requestForegroundPermissionsAsync();
-          } catch {
-            setState({ status: 'needs-location', isResolving: false, canAskAgain: true });
-            return;
-          }
-          if (requested.status === 'granted') {
-            gpsPermittedRef.current = true;
-            canAskGPSRef.current = false;
-            try {
-              const loc = await runGPSFlow();
-              if (!cancelled) await fetchAndSetOk(loc.lat, loc.lon, loc.cityName, 0);
-            } catch {
-              if (!cancelled) setState({ status: 'needs-location', isResolving: false, canAskAgain: requested.canAskAgain ?? true });
-            }
-          } else {
-            canAskGPSRef.current = requested.canAskAgain ?? false;
-            if (!cancelled) setState({ status: 'needs-location', isResolving: false, canAskAgain: requested.canAskAgain ?? false });
-          }
-        } else {
-          setState({ status: 'needs-location', isResolving: false, canAskAgain });
-        }
-        return;
-      }
-
-      if (granted) {
-        try {
-          const loc = await runGPSFlow();
-          if (!cancelled) await fetchAndSetOk(loc.lat, loc.lon, loc.cityName, 0);
-        } catch {
-          if (cache && !cancelled) {
-            await fetchAndSetOk(cache.lat, cache.lon, cache.cityName, 0);
-          } else if (!cancelled) {
-            setState({ status: 'error', message: strings.error_gps });
-          }
-        }
-        return;
-      }
-
-      // cache exists, no GPS permission — use cache silently
-      if (cache && !cancelled) {
-        try {
-          await fetchAndSetOk(cache.lat, cache.lon, cache.cityName, 0);
-        } catch {
-          setState({ status: 'error', message: strings.error_weather_fetch });
-        }
-      }
+      if (!cache && !granted) { await handleNoCache(perm); return; }
+      if (granted)             { await handleGranted(cache); return; }
+      if (cache)                 await handleCacheOnly(cache);
     }
 
     init();
@@ -300,5 +315,5 @@ export function useWeather() {
     };
   }, [fetchAndSetOk, refresh]);
 
-  return { ...state, refresh, refreshGPSLocation, setManualLocation };
+  return { ...state, refresh, refreshGPSLocation, setManualLocation } as UseWeatherReturn;
 }

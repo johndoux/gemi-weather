@@ -102,7 +102,7 @@ export function LocationInputScreen({
 
           {!canAskAgain && (
             <Pressable
-              onPress={() => Linking.openSettings()}
+              onPress={() => { Linking.openSettings().catch(() => {}); }}
               accessibilityRole="link"
               accessibilityLabel={strings.location_settings_link}
             >

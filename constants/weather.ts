@@ -3,6 +3,17 @@ import { strings } from './strings';
 export type VerdictKey = 'scorching' | 'warm' | 'mild' | 'cool' | 'cold' | 'frozen';
 export type ConditionKey = 'clear' | 'night' | 'cloudy' | 'foggy' | 'drizzle' | 'rain' | 'snow' | 'storm';
 
+export const WEATHER_ICONS: Record<ConditionKey, string> = {
+  clear:   'wb-sunny',
+  night:   'nights-stay',
+  cloudy:  'wb-cloudy',
+  foggy:   'foggy',
+  drizzle: 'grain',
+  rain:    'umbrella',
+  snow:    'ac-unit',
+  storm:   'thunderstorm',
+};
+
 export interface ColorPalette {
   background: string;
   gradientColors: readonly [string, string, string];
