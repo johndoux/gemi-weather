@@ -124,17 +124,30 @@ function TipJarContent({ onBack, onClose }: { onBack: () => void; onClose: () =>
   const [thankYou, setThankYou] = useState(false);
 
   useEffect(() => {
+    if (!IAPModule) { setLoading(false); return; }
+
     async function load() {
-      if (!IAPModule) { setLoading(false); return; }
       try {
-        await IAPModule.initConnection();
-        const prods = await IAPModule.fetchProducts({ skus: [...TIP_PRODUCT_IDS], type: 'in-app' });
+        await IAPModule!.initConnection();
+        const prods = await IAPModule!.fetchProducts({ skus: [...TIP_PRODUCT_IDS], type: 'in-app' });
         setProducts((prods ?? []) as unknown as TipProduct[]);
       } catch {}
       setLoading(false);
     }
+
+    // Finish any transactions that completed (including leftovers from prior sessions)
+    const sub = IAPModule.purchaseUpdatedListener(async (purchase: any) => {
+      try {
+        await IAPModule!.finishTransaction({ purchase, isConsumable: true });
+        setThankYou(true);
+      } catch {}
+    });
+
     load();
-    return () => { IAPModule?.endConnection?.(); };
+    return () => {
+      sub.remove();
+      IAPModule?.endConnection?.();
+    };
   }, []);
 
   async function purchase(id: string) {
@@ -144,7 +157,6 @@ function TipJarContent({ onBack, onClose }: { onBack: () => void; onClose: () =>
         type: 'in-app',
         request: { apple: { sku: id }, google: { skus: [id] } },
       });
-      setThankYou(true);
     } catch {}
   }
 
