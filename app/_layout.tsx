@@ -1,10 +1,7 @@
 import {
-  Comfortaa_400Regular,
-  Comfortaa_500Medium,
-  Comfortaa_600SemiBold,
-  Comfortaa_700Bold,
+  VarelaRound_400Regular,
   useFonts,
-} from '@expo-google-fonts/comfortaa';
+} from '@expo-google-fonts/varela-round';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
@@ -15,10 +12,7 @@ export const unstable_settings = {
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
-    Comfortaa_400Regular,
-    Comfortaa_500Medium,
-    Comfortaa_600SemiBold,
-    Comfortaa_700Bold,
+    VarelaRound_400Regular,
   });
 
   // Wait for fonts on every platform. If loading fails, render with system
