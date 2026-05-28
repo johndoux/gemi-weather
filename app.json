@@ -10,10 +10,10 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.yourcompany.gemiweather"
+      "bundleIdentifier": "com.johndoux.gemiweather"
     },
     "android": {
-      "package": "com.yourcompany.gemiweather",
+      "package": "com.johndoux.gemiweather",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
