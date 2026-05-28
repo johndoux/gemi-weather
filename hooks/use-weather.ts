@@ -97,6 +97,9 @@ export function useWeather() {
   // coordinates we're displaying. Used so the GPS button stays visible even
   // after the user switches to a manual location.
   const gpsPermittedRef = useRef(false);
+  // Tracks whether the app can still ask for GPS permission (not permanently denied).
+  // Button stays visible when this is true so tapping it triggers the permission prompt.
+  const canAskGPSRef = useRef(false);
   // Incremented on every user-initiated location change. Any async callback
   // that completes with a stale generation is discarded, preventing a slow
   // geocode or weather fetch from overwriting a newer result.
@@ -114,7 +117,7 @@ export function useWeather() {
         weatherCode:   weather.weatherCode,
         isDay:         weather.isDay,
         cityName,
-        canUseGPS: gpsPermittedRef.current,
+        canUseGPS: gpsPermittedRef.current || canAskGPSRef.current,
         isResolvingManual: false,
         isGPSRefreshing: false,
       });
@@ -142,6 +145,20 @@ export function useWeather() {
       return { ...prev, isGPSRefreshing: true };
     });
     try {
+      if (!gpsPermittedRef.current) {
+        const requested = await Location.requestForegroundPermissionsAsync();
+        if (locationGenRef.current !== gen) return;
+        if (requested.status !== 'granted') {
+          canAskGPSRef.current = requested.canAskAgain ?? false;
+          setState((prev) => {
+            if (prev.status !== 'ok') return prev;
+            return { ...prev, isGPSRefreshing: false, canUseGPS: canAskGPSRef.current };
+          });
+          return;
+        }
+        gpsPermittedRef.current = true;
+        canAskGPSRef.current = false;
+      }
       const loc = await runGPSFlow();
       if (locationGenRef.current !== gen) return;
       await fetchAndSetOk(loc.lat, loc.lon, loc.cityName, gen);
@@ -211,7 +228,11 @@ export function useWeather() {
       const granted = perm.status === 'granted';
       const canAskAgain = perm.canAskAgain ?? true;
 
-      if (granted) gpsPermittedRef.current = true;
+      if (granted) {
+        gpsPermittedRef.current = true;
+      } else {
+        canAskGPSRef.current = canAskAgain;
+      }
 
       if (!cache && !granted) {
         if (perm.status === 'undetermined') {
@@ -224,6 +245,7 @@ export function useWeather() {
           }
           if (requested.status === 'granted') {
             gpsPermittedRef.current = true;
+            canAskGPSRef.current = false;
             try {
               const loc = await runGPSFlow();
               if (!cancelled) await fetchAndSetOk(loc.lat, loc.lon, loc.cityName, 0);
@@ -231,6 +253,7 @@ export function useWeather() {
               if (!cancelled) setState({ status: 'needs-location', isResolving: false, canAskAgain: requested.canAskAgain ?? true });
             }
           } else {
+            canAskGPSRef.current = requested.canAskAgain ?? false;
             if (!cancelled) setState({ status: 'needs-location', isResolving: false, canAskAgain: requested.canAskAgain ?? false });
           }
         } else {
