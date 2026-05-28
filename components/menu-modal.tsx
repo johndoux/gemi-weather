@@ -38,8 +38,8 @@ interface MenuModalProps {
 }
 
 interface TipProduct {
-  productId: string;
-  localizedPrice?: string;
+  id: string;
+  displayPrice?: string;
 }
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -137,12 +137,12 @@ function TipJarContent({ onBack, onClose }: { onBack: () => void; onClose: () =>
     return () => { IAPModule?.endConnection?.(); };
   }, []);
 
-  async function purchase(productId: string) {
+  async function purchase(id: string) {
     if (!IAPModule) return;
     try {
       await IAPModule.requestPurchase({
         type: 'in-app',
-        request: { apple: { sku: productId }, google: { skus: [productId] } },
+        request: { apple: { sku: id }, google: { skus: [id] } },
       });
       setThankYou(true);
     } catch {}
@@ -164,14 +164,14 @@ function TipJarContent({ onBack, onClose }: { onBack: () => void; onClose: () =>
             ) : (
               products.map((p) => (
                 <Pressable
-                  key={p.productId}
+                  key={p.id}
                   style={styles.tipButton}
-                  onPress={() => purchase(p.productId)}
+                  onPress={() => purchase(p.id)}
                   accessibilityRole="button"
-                  accessibilityLabel={p.localizedPrice ?? p.productId}
+                  accessibilityLabel={p.displayPrice ?? p.id}
                 >
                   <Text style={[styles.tipButtonText, { fontFamily: fonts.semibold }]}>
-                    {p.localizedPrice ?? p.productId}
+                    {p.displayPrice ?? p.id}
                   </Text>
                 </Pressable>
               ))
@@ -467,7 +467,9 @@ const styles = StyleSheet.create({
   },
   tipCard: {
     alignItems: 'center',
+    justifyContent: 'center',
     gap: spacing.sm,
+    minHeight: 100,
   },
   tipButton: {
     backgroundColor: color.brand,
@@ -485,7 +487,6 @@ const styles = StyleSheet.create({
     fontSize: fontSize.xxl,
     color: color.textSuccess,
     textAlign: 'center',
-    marginTop: spacing.xl,
   },
   tipUnavailable: {
     fontSize: fontSize.md,
