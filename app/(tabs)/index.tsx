@@ -1,98 +1,227 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { ErrorScreen } from '@/components/error-screen';
+import { LoadingScreen } from '@/components/loading-screen';
+import { LocationInputScreen } from '@/components/location-input-screen';
+import { MenuModal } from '@/components/menu-modal';
+import { MonsterCharacter } from '@/components/monster-character';
+import { IconSymbol } from '@/components/ui/icon-symbol';
+import { useWeatherContext } from '@/contexts/weather-context';
+import { color, fonts, fontSize, iconSize, lineHeight, radius, shadow, size, spacing, zIndex } from '@/constants/theme';
+import { ConditionKey, getWeatherVerdict } from '@/constants/weather';
+import * as Haptics from 'expo-haptics';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { router, useFocusEffect } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import { ComponentProps, useCallback, useRef, useState } from 'react';
+import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+const WEATHER_ICONS: Record<ConditionKey, ComponentProps<typeof MaterialIcons>['name']> = {
+  clear:   'wb-sunny',
+  night:   'nights-stay',
+  cloudy:  'wb-cloudy',
+  foggy:   'foggy',
+  drizzle: 'grain',
+  rain:    'umbrella',
+  snow:    'ac-unit',
+  storm:   'thunderstorm',
+};
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const weather = useWeatherContext();
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [animKey, setAnimKey] = useState(0);
+  const insets = useSafeAreaInsets();
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+  const isFirstFocusRef = useRef(true);
+  useFocusEffect(useCallback(() => {
+    if (isFirstFocusRef.current) {
+      isFirstFocusRef.current = false;
+      return;
+    }
+    setAnimKey(k => k + 1);
+  }, []));
+
+  if (weather.status === 'loading') return <LoadingScreen />;
+  if (weather.status === 'error')   return <ErrorScreen message={weather.message} onRetry={weather.refresh} />;
+
+  if (weather.status === 'needs-location') {
+    return (
+      <LocationInputScreen
+        setManualLocation={weather.setManualLocation}
+        isResolving={weather.isResolving}
+        error={weather.locationError}
+        canAskAgain={weather.canAskAgain}
+      />
+    );
+  }
+
+  const verdict  = getWeatherVerdict(weather.apparentTempF, weather.weatherCode, weather.isDay);
+  const { palette, condition } = verdict;
+  const topOffset = insets.top + spacing.xs;
+
+  return (
+    <View style={[styles.screen, { backgroundColor: palette.background }]}>
+      <StatusBar style={weather.isDay ? 'dark' : 'light'} />
+
+      <Pressable
+        style={[styles.cornerBtn, { top: topOffset, left: spacing.lg }]}
+        onPress={() => router.push('/location')}
+        hitSlop={spacing.xs}
+        accessibilityRole="button"
+        accessibilityLabel="Change location"
+      >
+        <IconSymbol name="mappin.and.ellipse" size={iconSize.md} color={palette.textMuted} />
+      </Pressable>
+
+      {weather.canUseGPS && (
+        <Pressable
+          style={[styles.cornerBtn, { top: topOffset, right: spacing.lg }]}
+          onPress={weather.refreshGPSLocation}
+          hitSlop={spacing.xs}
+          disabled={weather.isGPSRefreshing}
+          accessibilityRole="button"
+          accessibilityLabel="Use my current location"
+          accessibilityState={{ disabled: weather.isGPSRefreshing }}
+        >
+          {weather.isGPSRefreshing
+            ? <ActivityIndicator color={palette.textMuted} size="small" />
+            : <IconSymbol name="location.fill" size={iconSize.md} color={palette.textMuted} />
+          }
+        </Pressable>
+      )}
+
+      <Pressable
+        style={[styles.cardWrapper, { paddingTop: insets.top, paddingBottom: insets.bottom }]}
+        onPress={weather.refresh}
+        accessibilityRole="button"
+        accessibilityLabel="Refresh weather"
+      >
+        <View style={[styles.shadowOuter, Platform.OS === 'android' && { backgroundColor: palette.background }]}>
+          <View style={styles.shadowInner}>
+            <LinearGradient colors={palette.gradientColors} style={styles.card}>
+              <View style={styles.cityRow}>
+                <MaterialIcons name="place" size={iconSize.sm} color={palette.textMuted} />
+                <Text style={[styles.cityText, { color: palette.textMuted, fontFamily: fonts.semibold }]}>
+                  {weather.cityName}
+                </Text>
+              </View>
+
+              <View style={styles.tempRow}>
+                <MaterialIcons name={WEATHER_ICONS[condition]} size={iconSize.huge} color={palette.iconColor} />
+                <Text style={[styles.temperature, { color: palette.text, fontFamily: fonts.black }]}>
+                  {Math.round(weather.apparentTempF)}°
+                </Text>
+              </View>
+
+              <Text style={[styles.conditionText, { color: palette.text, fontFamily: fonts.bold }]}>
+                {verdict.conditionText}
+              </Text>
+              <Text style={[styles.clothingText, { color: palette.textMuted, fontFamily: fonts.medium }]}>
+                {verdict.clothingText}
+              </Text>
+
+              <View
+                style={styles.monsterContainer}
+                accessibilityLabel={`${verdict.conditionText}. ${verdict.clothingText}`}
+                accessibilityRole="image"
+              >
+                <MonsterCharacter
+                  key={animKey}
+                  verdict={verdict.verdict}
+                  condition={condition}
+                  onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
+                />
+              </View>
+            </LinearGradient>
+          </View>
+        </View>
+      </Pressable>
+
+      <Pressable
+        style={[styles.cornerBtn, { bottom: insets.bottom + spacing.xs, right: spacing.lg }]}
+        onPress={() => setMenuVisible(true)}
+        hitSlop={spacing.xs}
+        accessibilityRole="button"
+        accessibilityLabel="Open settings menu"
+      >
+        <IconSymbol name="ellipsis" size={iconSize.md} color={palette.textMuted} />
+      </Pressable>
+
+      <MenuModal visible={menuVisible} onClose={() => setMenuVisible(false)} />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  screen: {
+    flex: 1,
+  },
+  cornerBtn: {
+    position: 'absolute',
+    width: size.iconBtn,
+    height: size.iconBtn,
+    borderRadius: radius.md,
+    backgroundColor: color.btnOverlay,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: zIndex.cornerBtn,
+  },
+  cardWrapper: {
+    flex: 1,
+    paddingHorizontal: spacing.md,
+    justifyContent: 'center',
+  },
+  shadowOuter: {
+    borderRadius: radius.lg,
+    ...shadow.outer,
+  },
+  shadowInner: {
+    borderRadius: radius.lg,
+    ...shadow.inner,
+  },
+  card: {
+    borderRadius: radius.lg,
+    paddingTop: spacing.xxl,
+    paddingBottom: spacing.huge,
+    overflow: 'hidden',
+  },
+  cityRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'center',
+    gap: spacing.xxs,
+    marginBottom: spacing.sm,
+    paddingHorizontal: spacing.xl,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  cityText: {
+    fontSize: fontSize.lg,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  tempRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.md,
+    marginBottom: spacing.xs,
+    paddingHorizontal: spacing.xl,
+  },
+  temperature: {
+    fontSize: fontSize.temp,
+    lineHeight: lineHeight.temp,
+  },
+  conditionText: {
+    fontSize: fontSize.xl,
+    textAlign: 'center',
+    paddingHorizontal: spacing.xl,
+  },
+  clothingText: {
+    fontSize: fontSize.base,
+    textAlign: 'center',
+    marginBottom: spacing.xs,
+    paddingHorizontal: spacing.xl,
+  },
+  monsterContainer: {
+    width: '100%',
+    aspectRatio: 1,
   },
 });
