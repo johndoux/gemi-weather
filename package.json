@@ -1,5 +1,5 @@
 {
-  "name": "jacket-weather",
+  "name": "gemi-weather",
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {

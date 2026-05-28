@@ -1,19 +1,19 @@
 {
   "expo": {
-    "name": "jacket-weather",
-    "slug": "jacket-weather",
+    "name": "Gemi Weather",
+    "slug": "gemi-weather",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "jacketweather",
+    "scheme": "gemiweather",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.yourcompany.jacketweather"
+      "bundleIdentifier": "com.yourcompany.gemiweather"
     },
     "android": {
-      "package": "com.yourcompany.jacketweather",
+      "package": "com.yourcompany.gemiweather",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
