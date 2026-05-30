@@ -18,5 +18,5 @@ export const ACKNOWLEDGEMENTS: AckEntry[] = [
   { name: 'React Native Reanimated',        url: 'https://docs.swmansion.com/react-native-reanimated' },
   { name: 'React Native Safe Area Context', url: 'https://github.com/th3rdwave/react-native-safe-area-context' },
   { name: '@expo/vector-icons',             url: 'https://github.com/expo/vector-icons' },
-  { name: 'Varela Round (Joe Prince)',       url: 'https://fonts.google.com/specimen/Varela+Round' },
+  { name: 'Nunito (Vernon Adams)',            url: 'https://fonts.google.com/specimen/Nunito' },
 ];

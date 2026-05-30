@@ -99,7 +99,7 @@ export default function HomeScreen() {
 
               <View style={styles.tempRow}>
                 <MaterialIcons name={WEATHER_ICONS[condition] as any} size={iconSize.huge} color={palette.iconColor} />
-                <Text style={[styles.temperature, { color: palette.text, fontFamily: fonts.bold }]}>
+                <Text style={[styles.temperature, { color: palette.text, fontFamily: fonts.black }]}>
                   {Math.round(weather.apparentTempF)}°
                 </Text>
               </View>
