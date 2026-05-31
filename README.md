@@ -1,50 +1,27 @@
-# Welcome to your Expo app 👋
+# Gemi Weather
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A friendly weather app for iPhone that answers the only question that matters: **should you grab a jacket?**
 
-## Get started
+Gemi Weather shows you the apparent ("feels like") temperature and gives you a simple recommendation — so you can get dressed and go without overthinking it. Your personal weather monster, Gemi, reacts to the current conditions.
 
-1. Install dependencies
+Available on the [App Store](https://apps.apple.com/us/app/gemi-weather/id6774063771).
 
-   ```bash
-   npm install
-   ```
+---
 
-2. Start the app
+## Support
 
-   ```bash
-   npx expo start
-   ```
+Having an issue or have a question? Reach out at **email@johnathando.com** and I'll get back to you as soon as I can.
 
-In the output, you'll find options to open the app in a
+---
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## Privacy
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+Gemi Weather requests your location only to show you local weather. Location data is never stored or shared. Manual city/zip lookup is available if you prefer not to share your location.
 
-## Get a fresh project
+---
 
-When you're ready, run:
+## Acknowledgements
 
-```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- Weather data provided by [Open-Meteo](https://open-meteo.com) (free, no API key required)
+- Geocoding provided by the [Nominatim](https://nominatim.openstreetmap.org) API
+- Built with [Expo](https://expo.dev) and [React Native](https://reactnative.dev)
