@@ -1,17 +1,19 @@
+import { Cloud, CloudDrizzle, CloudRain, Haze, Moon, Snowflake, Sun, Zap } from 'lucide-react-native';
+import type { LucideIcon } from 'lucide-react-native';
 import { strings } from './strings';
 
 export type VerdictKey = 'scorching' | 'warm' | 'mild' | 'cool' | 'cold' | 'frozen';
 export type ConditionKey = 'clear' | 'night' | 'cloudy' | 'foggy' | 'drizzle' | 'rain' | 'snow' | 'storm';
 
-export const WEATHER_ICONS: Record<ConditionKey, string> = {
-  clear:   'wb-sunny',
-  night:   'nights-stay',
-  cloudy:  'wb-cloudy',
-  foggy:   'foggy',
-  drizzle: 'grain',
-  rain:    'umbrella',
-  snow:    'ac-unit',
-  storm:   'thunderstorm',
+export const WEATHER_ICONS: Record<ConditionKey, LucideIcon> = {
+  clear:   Sun,
+  night:   Moon,
+  cloudy:  Cloud,
+  foggy:   Haze,
+  drizzle: CloudDrizzle,
+  rain:    CloudRain,
+  snow:    Snowflake,
+  storm:   Zap,
 };
 
 export interface ColorPalette {

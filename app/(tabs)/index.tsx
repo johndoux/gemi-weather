@@ -6,9 +6,9 @@ import { MonsterCharacter } from '@/components/monster-character';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useWeatherContext } from '@/contexts/weather-context';
 import { color, fonts, fontSize, iconSize, lineHeight, radius, shadow, size, spacing, zIndex } from '@/constants/theme';
-import { ConditionKey, getWeatherVerdict, WEATHER_ICONS } from '@/constants/weather';
+import { getWeatherVerdict, WEATHER_ICONS } from '@/constants/weather';
+import { MapPin } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -46,8 +46,9 @@ export default function HomeScreen() {
     );
   }
 
-  const verdict  = getWeatherVerdict(weather.apparentTempF, weather.weatherCode, weather.isDay);
+  const verdict     = getWeatherVerdict(weather.apparentTempF, weather.weatherCode, weather.isDay);
   const { palette, condition } = verdict;
+  const WeatherIcon = WEATHER_ICONS[condition];
   const topOffset = insets.top + spacing.xs;
 
   return (
@@ -91,14 +92,16 @@ export default function HomeScreen() {
           <View style={styles.shadowInner}>
             <LinearGradient colors={palette.gradientColors} style={styles.card}>
               <View style={styles.cityRow}>
-                <MaterialIcons name="place" size={iconSize.sm} color={palette.textMuted} />
+                <MapPin size={iconSize.sm} color={palette.textMuted} />
                 <Text style={[styles.cityText, { color: palette.textMuted, fontFamily: fonts.semibold }]}>
                   {weather.cityName}
                 </Text>
               </View>
 
               <View style={styles.tempRow}>
-                <MaterialIcons name={WEATHER_ICONS[condition] as any} size={iconSize.huge} color={palette.iconColor} />
+                <View style={styles.weatherIcon}>
+                  <WeatherIcon size={iconSize.huge} color={palette.iconColor} />
+                </View>
                 <Text style={[styles.temperature, { color: palette.text, fontFamily: fonts.black }]}>
                   {Math.round(weather.apparentTempF)}°
                 </Text>
@@ -194,6 +197,9 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     marginBottom: spacing.xs,
     paddingHorizontal: spacing.xl,
+  },
+  weatherIcon: {
+    marginBottom: 24,
   },
   temperature: {
     fontSize: fontSize.temp,
