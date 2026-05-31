@@ -38,6 +38,12 @@ Gemi Weather is designed with privacy in mind — especially since it's used wit
 
 ---
 
+## Contributing
+
+Found a bug or have a feature idea? Feel free to [open an issue](https://github.com/johndoux/gemi-weather/issues) or fork the project and submit a pull request. All feedback welcome!
+
+---
+
 ## Acknowledgements
 
 - Weather data provided by [Open-Meteo](https://open-meteo.com)
