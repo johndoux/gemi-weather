@@ -4,6 +4,7 @@ import { ImageSourcePropType, LayoutChangeEvent, Pressable, StyleSheet, View } f
 import Animated, {
   useAnimatedStyle,
   useFrameCallback,
+  useReducedMotion,
   useSharedValue,
 } from 'react-native-reanimated';
 
@@ -16,9 +17,20 @@ export interface SpriteConfig {
   fps: number;
 }
 
-export function SpriteAnimation({ config, onPress }: { config: SpriteConfig; onPress?: () => void }) {
+export function SpriteAnimation({
+  config,
+  onPress,
+  accessibilityLabel = 'Gemi the weather monster',
+  accessibilityHint  = 'Plays a weather animation',
+}: {
+  config: SpriteConfig;
+  onPress?: () => void;
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
+}) {
   const [displaySize, setDisplaySize] = useState(0);
-  const hasLoadedRef = useRef(false);
+  const hasLoadedRef  = useRef(false);
+  const reduceMotion  = useReducedMotion();
 
   const frameIndex = useSharedValue(0);
   const isPlaying = useSharedValue(false);
@@ -51,7 +63,7 @@ export function SpriteAnimation({ config, onPress }: { config: SpriteConfig; onP
   function handleLoad() {
     if (hasLoadedRef.current) return;
     hasLoadedRef.current = true;
-    play();
+    if (!reduceMotion) play();
   }
 
   function onLayout(e: LayoutChangeEvent) {
@@ -71,14 +83,21 @@ export function SpriteAnimation({ config, onPress }: { config: SpriteConfig; onP
   });
 
   function handlePress() {
-    play();
+    if (!reduceMotion) play();
     onPress?.();
   }
 
   return (
-    <Pressable style={styles.container} onPress={handlePress} onLayout={onLayout}>
+    <Pressable
+      style={styles.container}
+      onPress={handlePress}
+      onLayout={onLayout}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityHint={accessibilityHint}
+    >
       {scale > 0 && (
-        <View style={styles.clip}>
+        <View style={styles.clip} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
           <Animated.View
             style={[{ position: 'absolute', width: sheetSize * scale, height: sheetSize * scale }, animatedStyle]}
             renderToHardwareTextureAndroid

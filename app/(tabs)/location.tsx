@@ -6,6 +6,7 @@ import { router } from 'expo-router';
 import { useEffect, useRef } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet } from 'react-native';
 import Animated, {
+  ReduceMotion,
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
@@ -21,11 +22,11 @@ export default function LocationScreen() {
   const fadeStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
 
   useEffect(() => {
-    opacity.value = withTiming(1, { duration: duration.fadeIn });
+    opacity.value = withTiming(1, { duration: duration.fadeIn, reduceMotion: ReduceMotion.System });
   }, []);
 
   function navigateBack() {
-    opacity.value = withTiming(0, { duration: duration.fadeOut }, (done) => {
+    opacity.value = withTiming(0, { duration: duration.fadeOut, reduceMotion: ReduceMotion.System }, (done) => {
       if (done) runOnJS(router.back)();
     });
   }

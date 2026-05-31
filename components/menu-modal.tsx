@@ -20,8 +20,10 @@ import {
   View,
 } from 'react-native';
 import Animated, {
+  ReduceMotion,
   runOnJS,
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
   withSpring,
   withTiming,
@@ -44,7 +46,7 @@ const ACK_HEIGHT    = SCREEN_HEIGHT - 85;
 const CLOSED_OFFSET = SCREEN_HEIGHT;
 
 // Figma spring spec — runs on UI thread, same on both platforms.
-const SLIDE_SPRING = { stiffness: 130.6, damping: 17.14, mass: 1 };
+const SLIDE_SPRING = { stiffness: 130.6, damping: 17.14, mass: 1, reduceMotion: ReduceMotion.System };
 
 const PHASE_LAYOUT_ANIM = {
   duration: duration.phaseAnim,
@@ -201,7 +203,8 @@ function TipJarContent({ onBack, onClose }: { onBack: () => void; onClose: () =>
 // ─── Main modal ──────────────────────────────────────────────────────────────
 
 export function MenuModal({ visible, onClose }: MenuModalProps) {
-  const insets = useSafeAreaInsets();
+  const insets       = useSafeAreaInsets();
+  const reduceMotion = useReducedMotion();
   const [phase,  setPhase]  = useState<Phase>('menu');
   const [active, setActive] = useState(false);
 
@@ -237,10 +240,10 @@ export function MenuModal({ visible, onClose }: MenuModalProps) {
       setPhase('menu');
       setActive(true);
       sheetH.value = measuredH.current.menu ?? 0;
-      backdropOpacity.value = withTiming(1, { duration: duration.backdropIn });
+      backdropOpacity.value = withTiming(1, { duration: duration.backdropIn, reduceMotion: ReduceMotion.System });
       translateY.value = withSpring(0, SLIDE_SPRING);
     } else {
-      backdropOpacity.value = withTiming(0, { duration: duration.backdropOut });
+      backdropOpacity.value = withTiming(0, { duration: duration.backdropOut, reduceMotion: ReduceMotion.System });
       translateY.value = withSpring(
         CLOSED_OFFSET,
         SLIDE_SPRING,
@@ -251,7 +254,7 @@ export function MenuModal({ visible, onClose }: MenuModalProps) {
 
   function navigate(to: Phase) {
     phaseRef.current = to;
-    LayoutAnimation.configureNext(PHASE_LAYOUT_ANIM);
+    if (!reduceMotion) LayoutAnimation.configureNext(PHASE_LAYOUT_ANIM);
     setPhase(to);
     if (to === 'acknowledgements') {
       sheetH.value = withSpring(ACK_HEIGHT, SLIDE_SPRING);
@@ -296,6 +299,7 @@ export function MenuModal({ visible, onClose }: MenuModalProps) {
       <Animated.View
         style={[styles.sheet, { maxHeight: ACK_HEIGHT }, sheetStyle]}
         pointerEvents={active ? 'auto' : 'none'}
+        accessibilityViewIsModal={active}
       >
         {phase === 'acknowledgements' ? (
           <View style={[styles.ackLayout, { paddingBottom: Math.max(insets.bottom, spacing.md) }]}>

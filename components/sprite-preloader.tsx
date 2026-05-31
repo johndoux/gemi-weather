@@ -6,7 +6,12 @@ const SPRITE_SOURCES = Object.values(SPRITE_CONFIGS).map(c => c.source);
 
 export function SpritePreloader() {
   return (
-    <View style={styles.container} pointerEvents="none">
+    <View
+      style={styles.container}
+      pointerEvents="none"
+      importantForAccessibility="no-hide-descendants"
+      accessibilityElementsHidden
+    >
       {SPRITE_SOURCES.map((source, i) => (
         <Image key={i} source={source} style={styles.image} />
       ))}

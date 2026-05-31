@@ -1,6 +1,7 @@
 import { strings } from '@/constants/strings';
 import { color, fontSize, fonts, iconSize, radius, shadow, size, spacing } from '@/constants/theme';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { TriangleAlert } from 'lucide-react-native';
 import { useState } from 'react';
 import {
   ActivityIndicator,
@@ -78,12 +79,12 @@ export function LocationInputScreen({
           />
 
           {error && (
-            <Text
-              style={[styles.error, { fontFamily: fonts.regular }]}
-              accessibilityRole="alert"
-            >
-              {error}
-            </Text>
+            <View style={styles.errorRow} accessibilityRole="alert" accessibilityLabel={error}>
+              <TriangleAlert size={iconSize.sm} color={color.error} accessibilityElementsHidden />
+              <Text style={[styles.error, { fontFamily: fonts.regular }]} accessibilityElementsHidden>
+                {error}
+              </Text>
+            </View>
           )}
 
           <Pressable
@@ -162,10 +163,16 @@ const styles = StyleSheet.create({
     color: color.textWarm,
     ...shadow.input,
   },
+  errorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xxs,
+  },
   error: {
     color: color.error,
     fontSize: fontSize.md,
     textAlign: 'center',
+    flexShrink: 1,
   },
   button: {
     backgroundColor: color.brand,

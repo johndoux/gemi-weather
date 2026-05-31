@@ -86,23 +86,30 @@ export default function HomeScreen() {
         style={[styles.cardWrapper, { paddingTop: insets.top, paddingBottom: insets.bottom }]}
         onPress={weather.refresh}
         accessibilityRole="button"
-        accessibilityLabel="Refresh weather"
+        accessibilityLabel={`${Math.round(weather.apparentTempF)} degrees, ${verdict.conditionText}, ${verdict.clothingText}, in ${weather.cityName}`}
+        accessibilityHint="Refreshes the weather"
       >
         <View style={[styles.shadowOuter, Platform.OS === 'android' && { backgroundColor: palette.background }]}>
           <View style={styles.shadowInner}>
             <LinearGradient colors={palette.gradientColors} style={styles.card}>
-              <View style={styles.cityRow}>
-                <MapPin size={iconSize.sm} color={palette.textMuted} />
-                <Text style={[styles.cityText, { color: palette.textMuted, fontFamily: fonts.semibold }]}>
+              <View style={styles.cityRow} accessible={false}>
+                <MapPin size={iconSize.sm} color={palette.textMuted} accessible={false} />
+                <Text
+                  style={[styles.cityText, { color: palette.textMuted, fontFamily: fonts.semibold }]}
+                  accessibilityLabel={`Location: ${weather.cityName}`}
+                >
                   {weather.cityName}
                 </Text>
               </View>
 
-              <View style={styles.tempRow}>
-                <View style={styles.weatherIcon}>
+              <View style={styles.tempRow} accessible={false}>
+                <View style={styles.weatherIcon} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
                   <WeatherIcon size={iconSize.huge} color={palette.iconColor} />
                 </View>
-                <Text style={[styles.temperature, { color: palette.text, fontFamily: fonts.black }]}>
+                <Text
+                  style={[styles.temperature, { color: palette.text, fontFamily: fonts.black }]}
+                  accessibilityLabel={`${Math.round(weather.apparentTempF)} degrees`}
+                >
                   {Math.round(weather.apparentTempF)}°
                 </Text>
               </View>
@@ -114,11 +121,7 @@ export default function HomeScreen() {
                 {verdict.clothingText}
               </Text>
 
-              <View
-                style={styles.monsterContainer}
-                accessibilityLabel={`${verdict.conditionText}. ${verdict.clothingText}`}
-                accessibilityRole="image"
-              >
+              <View style={styles.monsterContainer}>
                 <MonsterCharacter
                   key={animKey}
                   verdict={verdict.verdict}

@@ -2,12 +2,17 @@ import { strings } from '@/constants/strings';
 import { color, duration, fontSize, fonts } from '@/constants/theme';
 import { StyleSheet, Text, View } from 'react-native';
 import { useEffect } from 'react';
-import Animated, { useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 
 export function LoadingScreen() {
-  const opacity = useSharedValue(1);
+  const opacity     = useSharedValue(1);
+  const reduceMotion = useReducedMotion();
 
   useEffect(() => {
+    if (reduceMotion) {
+      opacity.value = 1;
+      return;
+    }
     opacity.value = withRepeat(
       withSequence(
         withTiming(0.3, { duration: duration.loadingPulse }),
@@ -16,13 +21,13 @@ export function LoadingScreen() {
       -1,
       true,
     );
-  }, []);
+  }, [reduceMotion]);
 
   const animStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
 
   return (
-    <View style={styles.container}>
-      <Animated.View style={animStyle}>
+    <View style={styles.container} accessibilityLabel="Loading weather" accessibilityLiveRegion="polite">
+      <Animated.View style={animStyle} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
         <Text style={[styles.mark, { fontFamily: fonts.bold }]}>{strings.loading_mark}</Text>
       </Animated.View>
     </View>
