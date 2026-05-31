@@ -1,10 +1,22 @@
 # Gemi Weather
 
-A friendly weather app for iPhone that answers the only question that matters: **should you grab a jacket?**
+**Helps us tell our son to wear a jacket when it's cold, I hope this helps you too!**
 
-Gemi Weather shows you the apparent ("feels like") temperature and gives you a simple recommendation — so you can get dressed and go without overthinking it. Your personal weather monster, Gemi, reacts to the current conditions.
+Gemi Weather is a kids-first weather app that answers the one question every parent faces before stepping outside: *does my kid need a jacket?*
+
+Gemi — your child's adorable weather monster — dresses for the weather and tells kids exactly what to wear. Jacket weather? Gemi bundles up. Too hot? Gemi rocks a t-shirt. Raining? Gemi grabs an umbrella. Even toddlers can understand it at a glance.
 
 Available on the [App Store](https://apps.apple.com/us/app/gemi-weather/id6774063771).
+
+---
+
+## Features
+
+- Feels-like temperature with a clear jacket recommendation
+- Gemi's outfit changes with every weather condition
+- Works day and night
+- GPS location or manual city/zip entry
+- Designed to be understood by kids at a glance
 
 ---
 
@@ -16,12 +28,18 @@ Having an issue or have a question? Reach out at **email@johnathando.com** and I
 
 ## Privacy
 
-Gemi Weather requests your location only to show you local weather. Location data is never stored or shared. Manual city/zip lookup is available if you prefer not to share your location.
+Gemi Weather is designed with privacy in mind — especially since it's used with kids.
+
+- **No data is collected or sent to the developer.** No analytics, no tracking, no backend server.
+- **Location stays on your device.** Your last used location (coordinates and city name) is cached locally in encrypted on-device storage so the app works even if GPS permission is later turned off. It is never transmitted to anyone other than the weather API.
+- **Weather requests are anonymous.** The app fetches weather from [Open-Meteo](https://open-meteo.com) using only coordinates — no account, no API key, no identifying information.
+- **Geocoding is on-device.** City/zip lookups use Apple's built-in geocoding and do not leave your device in an identifiable way.
+- **Manual location is always available.** If you prefer not to grant location permission, you can type a city or zip code instead.
 
 ---
 
 ## Acknowledgements
 
-- Weather data provided by [Open-Meteo](https://open-meteo.com) (free, no API key required)
-- Geocoding provided by the [Nominatim](https://nominatim.openstreetmap.org) API
+- Weather data provided by [Open-Meteo](https://open-meteo.com)
+- Geocoding via Apple's on-device location services
 - Built with [Expo](https://expo.dev) and [React Native](https://reactnative.dev)
