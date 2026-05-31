@@ -6,7 +6,6 @@ import { router } from 'expo-router';
 import { useEffect, useRef } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet } from 'react-native';
 import Animated, {
-  FadeIn,
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
@@ -18,8 +17,12 @@ export default function LocationScreen() {
   const weather = useWeatherContext();
   const insets  = useSafeAreaInsets();
 
-  const opacity   = useSharedValue(1);
+  const opacity   = useSharedValue(0);
   const fadeStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
+
+  useEffect(() => {
+    opacity.value = withTiming(1, { duration: duration.fadeIn });
+  }, []);
 
   function navigateBack() {
     opacity.value = withTiming(0, { duration: duration.fadeOut }, (done) => {
@@ -45,7 +48,7 @@ export default function LocationScreen() {
   }, [isGPSRefreshing]);
 
   return (
-    <Animated.View style={[styles.container, fadeStyle]} entering={FadeIn.duration(duration.fadeIn)}>
+    <Animated.View style={[styles.container, fadeStyle]}>
       <LocationInputScreen
         onDismiss={navigateBack}
         setManualLocation={weather.setManualLocation}
