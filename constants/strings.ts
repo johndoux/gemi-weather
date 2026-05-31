@@ -48,7 +48,7 @@ export const strings = {
   menu_support:              'Support this App',
 
   // ── Tip jar ──────────────────────────────────────────────────────────────
-  tip_subtitle:    'Just a dad making an app to help his kid wear a jacket!',
+  tip_subtitle:    'Supporting a dad making an app to help his kid wear a jacket when it is cold outside!',
   tip_unavailable: 'Tips are not available right now.',
   tip_thank_you:   'Thank you so much!',
 
