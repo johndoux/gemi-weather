@@ -24,6 +24,8 @@ Available on the [App Store](https://apps.apple.com/us/app/gemi-weather/id677406
 
 Having an issue or have a question? Reach out at **email@johnathando.com** and I'll get back to you as soon as I can.
 
+If found a bug or have a feature idea? Feel free to [open an issue](https://github.com/johndoux/gemi-weather/issues) 
+
 ---
 
 ## Privacy
