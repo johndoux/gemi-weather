@@ -129,7 +129,10 @@ function TipJarContent({ onBack, onClose }: { onBack: () => void; onClose: () =>
       try {
         await IAPModule!.initConnection();
         const prods = await IAPModule!.fetchProducts({ skus: [...TIP_PRODUCT_IDS], type: 'in-app' });
-        setProducts((prods as ProductIOS[]) ?? []);
+        const sorted = ((prods as ProductIOS[]) ?? []).sort(
+          (a, b) => TIP_PRODUCT_IDS.indexOf(a.id as typeof TIP_PRODUCT_IDS[number]) - TIP_PRODUCT_IDS.indexOf(b.id as typeof TIP_PRODUCT_IDS[number])
+        );
+        setProducts(sorted);
       } catch (e) {
         if (__DEV__) console.warn('[TipJar] fetchProducts failed:', e);
       }
