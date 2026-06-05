@@ -106,7 +106,7 @@ export default function HomeScreen() {
               </View>
 
               <View style={styles.tempRow} accessible={false}>
-                <View style={styles.weatherIcon} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+                <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
                   <WeatherIcon size={iconSize.huge} color={palette.iconColor} />
                 </View>
                 <Text
