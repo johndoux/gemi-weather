@@ -5,7 +5,7 @@ import { MenuModal } from '@/components/menu-modal';
 import { MonsterCharacter } from '@/components/monster-character';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useWeatherContext } from '@/contexts/weather-context';
-import { color, fonts, fontSize, iconSize, lineHeight, radius, shadow, size, spacing, zIndex } from '@/constants/theme';
+import { color, fonts, fontSize, iconSize, radius, shadow, size, spacing, zIndex } from '@/constants/theme';
 import { getWeatherVerdict, WEATHER_ICONS } from '@/constants/weather';
 import { MapPin } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
@@ -114,10 +114,10 @@ export default function HomeScreen() {
                 </Text>
               </View>
 
-              <Text style={[styles.conditionText, { color: palette.text, fontFamily: fonts.bold }]}>
+              <Text style={[styles.conditionText, { color: palette.textMuted, fontFamily: fonts.bold }]}>
                 {verdict.conditionText}
               </Text>
-              <Text style={[styles.clothingText, { color: palette.textMuted, fontFamily: fonts.medium }]}>
+              <Text style={[styles.clothingText, { color: palette.text, fontFamily: fonts.black }]}>
                 {verdict.clothingText}
               </Text>
 
@@ -187,7 +187,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.xxs,
-    marginBottom: spacing.sm,
     paddingHorizontal: spacing.xl,
   },
   cityText: {
@@ -198,24 +197,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.md,
-    marginBottom: spacing.xs,
     paddingHorizontal: spacing.xl,
   },
-  weatherIcon: {
-    marginBottom: 24,
-  },
+  weatherIcon: {},
   temperature: {
     fontSize: fontSize.temp,
-    lineHeight: lineHeight.temp,
   },
   conditionText: {
-    fontSize: fontSize.xl,
+    fontSize: fontSize.lg,
     textAlign: 'center',
     paddingHorizontal: spacing.xl,
   },
   clothingText: {
-    fontSize: fontSize.base,
+    fontSize: fontSize.h2,
     textAlign: 'center',
+    marginTop: spacing.xl,
     marginBottom: spacing.xs,
     paddingHorizontal: spacing.xl,
   },
