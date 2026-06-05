@@ -202,7 +202,6 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     paddingHorizontal: spacing.xl,
   },
-  weatherIcon: {},
   temperature: {
     fontSize: fontSize.temp,
   },
