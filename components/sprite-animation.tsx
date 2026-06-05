@@ -29,7 +29,7 @@ export function SpriteAnimation({
   accessibilityHint?: string;
 }) {
   const [displaySize, setDisplaySize] = useState(0);
-  const hasLoadedRef  = useRef(false);
+  const hasLoadedRef = useRef(false);
   const reduceMotion  = useReducedMotion();
 
   const frameIndex = useSharedValue(0);
@@ -67,8 +67,9 @@ export function SpriteAnimation({
   }
 
   function onLayout(e: LayoutChangeEvent) {
-    const { width } = e.nativeEvent.layout;
-    if (width > 0 && width !== displaySize) setDisplaySize(width);
+    const { width, height } = e.nativeEvent.layout;
+    const size = Math.min(width, height);
+    if (size > 0 && size !== displaySize) setDisplaySize(size);
   }
 
   const animatedStyle = useAnimatedStyle(() => {
@@ -97,7 +98,7 @@ export function SpriteAnimation({
       accessibilityHint={accessibilityHint}
     >
       {scale > 0 && (
-        <View style={styles.clip} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+        <View style={[styles.clip, { width: displaySize, height: displaySize }]} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
           <Animated.View
             style={[{ position: 'absolute', width: sheetSize * scale, height: sheetSize * scale }, animatedStyle]}
             renderToHardwareTextureAndroid
@@ -117,11 +118,11 @@ export function SpriteAnimation({
 
 const styles = StyleSheet.create({
   container: {
-    width: '100%',
-    aspectRatio: 1,
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   clip: {
-    flex: 1,
     overflow: 'hidden',
   },
 });

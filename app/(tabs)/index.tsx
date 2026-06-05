@@ -22,7 +22,7 @@ export default function HomeScreen() {
   const [menuVisible, setMenuVisible] = useState(false);
   const [animKey, setAnimKey] = useState(0);
   const insets = useSafeAreaInsets();
-  const { height: windowHeight } = useWindowDimensions();
+  const { height: windowHeight, width: windowWidth } = useWindowDimensions();
   const buttonClearance = spacing.xs + size.iconBtn + spacing.xl;
   const cardMaxHeight = windowHeight - insets.top - insets.bottom - buttonClearance * 2;
 
@@ -94,7 +94,7 @@ export default function HomeScreen() {
       >
         <View style={[styles.shadowOuter, Platform.OS === 'android' && { backgroundColor: palette.background }]}>
           <View style={styles.shadowInner}>
-            <LinearGradient colors={palette.gradientColors} style={[styles.card, { maxHeight: cardMaxHeight }]}>
+            <LinearGradient colors={palette.gradientColors} style={[styles.card, { height: cardMaxHeight }]}>
               <View style={styles.cityRow} accessible={false}>
                 <MapPin size={iconSize.sm} color={palette.textMuted} accessible={false} />
                 <Text
@@ -124,7 +124,7 @@ export default function HomeScreen() {
                 {verdict.clothingText}
               </Text>
 
-              <View style={styles.monsterContainer}>
+              <View style={[styles.monsterContainer, { maxHeight: windowWidth - spacing.md * 2 }]}>
                 <MonsterCharacter
                   key={animKey}
                   verdict={verdict.verdict}
@@ -219,7 +219,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
   },
   monsterContainer: {
-    width: '100%',
-    aspectRatio: 1,
+    flex: 1,
   },
 });
