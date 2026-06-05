@@ -279,8 +279,12 @@ export function MenuModal({ visible, onClose }: MenuModalProps) {
 
   async function handleReview() {
     try {
-      const url = await StoreReview.storeUrl();
-      if (url) await Linking.openURL(url);
+      if (await StoreReview.isAvailableAsync()) {
+        await StoreReview.requestReview();
+      } else {
+        const url = await StoreReview.storeUrl();
+        if (url) await Linking.openURL(url);
+      }
     } catch {}
     onClose();
   }
