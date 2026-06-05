@@ -13,7 +13,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useRef, useState } from 'react';
-import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 
@@ -22,6 +22,9 @@ export default function HomeScreen() {
   const [menuVisible, setMenuVisible] = useState(false);
   const [animKey, setAnimKey] = useState(0);
   const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
+  const buttonClearance = spacing.xs + size.iconBtn + spacing.xl;
+  const cardMaxHeight = windowHeight - insets.top - insets.bottom - buttonClearance * 2;
 
   const isFirstFocusRef = useRef(true);
   useFocusEffect(useCallback(() => {
@@ -83,7 +86,7 @@ export default function HomeScreen() {
       )}
 
       <Pressable
-        style={[styles.cardWrapper, { paddingTop: insets.top, paddingBottom: insets.bottom }]}
+        style={[styles.cardWrapper, { paddingTop: insets.top + spacing.xs + size.iconBtn + spacing.xl, paddingBottom: insets.bottom + spacing.xs + size.iconBtn + spacing.xl }]}
         onPress={weather.refresh}
         accessibilityRole="button"
         accessibilityLabel={`${Math.round(weather.apparentTempF)} degrees, ${verdict.conditionText}, ${verdict.clothingText}, in ${weather.cityName}`}
@@ -91,7 +94,7 @@ export default function HomeScreen() {
       >
         <View style={[styles.shadowOuter, Platform.OS === 'android' && { backgroundColor: palette.background }]}>
           <View style={styles.shadowInner}>
-            <LinearGradient colors={palette.gradientColors} style={styles.card}>
+            <LinearGradient colors={palette.gradientColors} style={[styles.card, { maxHeight: cardMaxHeight }]}>
               <View style={styles.cityRow} accessible={false}>
                 <MapPin size={iconSize.sm} color={palette.textMuted} accessible={false} />
                 <Text
