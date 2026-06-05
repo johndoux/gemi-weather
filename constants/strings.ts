@@ -33,10 +33,10 @@ export const strings = {
   condition_storm:   'Thunderstorm!',
 
   // ── Clothing advice (line 2 under temperature) ───────────────────────────
-  clothing_scorching: 'Stay cool out there',
+  clothing_scorching: 'Stay cool out there!',
   clothing_warm:      'No jacket needed!',
-  clothing_mild:      'Grab a light jacket',
-  clothing_cool:      'Wear a jacket',
+  clothing_mild:      'Grab a light jacket!',
+  clothing_cool:      'Wear your jacket!',
   clothing_cold:      'Bundle up!',
   clothing_frozen:    'Full winter gear!',
 
