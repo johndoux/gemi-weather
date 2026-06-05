@@ -5,7 +5,7 @@ import { MenuModal } from '@/components/menu-modal';
 import { MonsterCharacter } from '@/components/monster-character';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useWeatherContext } from '@/contexts/weather-context';
-import { color, fonts, fontSize, iconSize, lineHeight, radius, shadow, size, spacing, zIndex } from '@/constants/theme';
+import { color, fonts, fontSize, iconSize, radius, shadow, size, spacing, zIndex } from '@/constants/theme';
 import { getWeatherVerdict, WEATHER_ICONS } from '@/constants/weather';
 import { MapPin } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
@@ -13,7 +13,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useRef, useState } from 'react';
-import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 
@@ -22,6 +22,9 @@ export default function HomeScreen() {
   const [menuVisible, setMenuVisible] = useState(false);
   const [animKey, setAnimKey] = useState(0);
   const insets = useSafeAreaInsets();
+  const { height: windowHeight, width: windowWidth } = useWindowDimensions();
+  const buttonClearance = spacing.xs + size.iconBtn + spacing.xl;
+  const cardMaxHeight = windowHeight - insets.top - insets.bottom - buttonClearance * 2;
 
   const isFirstFocusRef = useRef(true);
   useFocusEffect(useCallback(() => {
@@ -83,7 +86,7 @@ export default function HomeScreen() {
       )}
 
       <Pressable
-        style={[styles.cardWrapper, { paddingTop: insets.top, paddingBottom: insets.bottom }]}
+        style={[styles.cardWrapper, { paddingTop: insets.top + spacing.xs + size.iconBtn + spacing.xl, paddingBottom: insets.bottom + spacing.xs + size.iconBtn + spacing.xl }]}
         onPress={weather.refresh}
         accessibilityRole="button"
         accessibilityLabel={`${Math.round(weather.apparentTempF)} degrees, ${verdict.conditionText}, ${verdict.clothingText}, in ${weather.cityName}`}
@@ -91,7 +94,7 @@ export default function HomeScreen() {
       >
         <View style={[styles.shadowOuter, Platform.OS === 'android' && { backgroundColor: palette.background }]}>
           <View style={styles.shadowInner}>
-            <LinearGradient colors={palette.gradientColors} style={styles.card}>
+            <LinearGradient colors={palette.gradientColors} style={[styles.card, { height: cardMaxHeight }]}>
               <View style={styles.cityRow} accessible={false}>
                 <MapPin size={iconSize.sm} color={palette.textMuted} accessible={false} />
                 <Text
@@ -103,7 +106,7 @@ export default function HomeScreen() {
               </View>
 
               <View style={styles.tempRow} accessible={false}>
-                <View style={styles.weatherIcon} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+                <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
                   <WeatherIcon size={iconSize.huge} color={palette.iconColor} />
                 </View>
                 <Text
@@ -114,14 +117,14 @@ export default function HomeScreen() {
                 </Text>
               </View>
 
-              <Text style={[styles.conditionText, { color: palette.text, fontFamily: fonts.bold }]}>
+              <Text style={[styles.conditionText, { color: palette.textMuted, fontFamily: fonts.bold }]}>
                 {verdict.conditionText}
               </Text>
-              <Text style={[styles.clothingText, { color: palette.textMuted, fontFamily: fonts.medium }]}>
+              <Text style={[styles.clothingText, { color: palette.text, fontFamily: fonts.black }]}>
                 {verdict.clothingText}
               </Text>
 
-              <View style={styles.monsterContainer}>
+              <View style={[styles.monsterContainer, { maxHeight: windowWidth - spacing.md * 2 }]}>
                 <MonsterCharacter
                   key={animKey}
                   verdict={verdict.verdict}
@@ -187,7 +190,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.xxs,
-    marginBottom: spacing.sm,
     paddingHorizontal: spacing.xl,
   },
   cityText: {
@@ -198,29 +200,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.md,
-    marginBottom: spacing.xs,
     paddingHorizontal: spacing.xl,
-  },
-  weatherIcon: {
-    marginBottom: 24,
   },
   temperature: {
     fontSize: fontSize.temp,
-    lineHeight: lineHeight.temp,
   },
   conditionText: {
-    fontSize: fontSize.xl,
+    fontSize: fontSize.lg,
     textAlign: 'center',
     paddingHorizontal: spacing.xl,
   },
   clothingText: {
-    fontSize: fontSize.base,
+    fontSize: fontSize.h2,
     textAlign: 'center',
+    marginTop: spacing.xl,
     marginBottom: spacing.xs,
     paddingHorizontal: spacing.xl,
   },
   monsterContainer: {
-    width: '100%',
-    aspectRatio: 1,
+    flex: 1,
   },
 });

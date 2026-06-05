@@ -23,12 +23,8 @@ export const fontSize = {
   xxl:   22,
   xxxl:  24,
   h2:    28,
-  temp:  96,
+  temp:  68,
   mark:  120,
-} as const;
-
-export const lineHeight = {
-  temp: 104,
 } as const;
 
 // ─── Icon sizes ───────────────────────────────────────────────────────────────
@@ -37,7 +33,7 @@ export const iconSize = {
   md:   22,
   lg:   24,
   xl:   28,
-  huge: 64,
+  huge: 44,
 } as const;
 
 // ─── Border radius ────────────────────────────────────────────────────────────
