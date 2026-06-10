@@ -5,7 +5,7 @@ import { MenuModal } from '@/components/menu-modal';
 import { MonsterCharacter } from '@/components/monster-character';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useWeatherContext } from '@/contexts/weather-context';
-import { color, fonts, fontSize, iconSize, radius, shadow, size, spacing, zIndex } from '@/constants/theme';
+import { color, fonts, fontSize, iconSize, radius, size, spacing, zIndex } from '@/constants/theme';
 import { getWeatherVerdict, WEATHER_ICONS } from '@/constants/weather';
 import { MapPin } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
@@ -13,7 +13,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useRef, useState } from 'react';
-import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 
@@ -55,7 +55,7 @@ export default function HomeScreen() {
   const topOffset = insets.top + spacing.xs;
 
   return (
-    <View style={[styles.screen, { backgroundColor: palette.background }]}>
+    <LinearGradient colors={palette.gradientColors} style={[styles.screen, { backgroundColor: palette.background }]}>
       <StatusBar style={weather.isDay ? 'dark' : 'light'} />
 
       <Pressable
@@ -92,9 +92,7 @@ export default function HomeScreen() {
         accessibilityLabel={`${Math.round(weather.apparentTempF)} degrees, ${verdict.conditionText}, ${verdict.clothingText}, in ${weather.cityName}`}
         accessibilityHint="Refreshes the weather"
       >
-        <View style={[styles.shadowOuter, Platform.OS === 'android' && { backgroundColor: palette.background }]}>
-          <View style={styles.shadowInner}>
-            <LinearGradient colors={palette.gradientColors} style={[styles.card, { height: cardMaxHeight }]}>
+        <View style={[styles.content, { height: cardMaxHeight }]}>
               <View style={styles.cityRow} accessible={false}>
                 <MapPin size={iconSize.sm} color={palette.textMuted} accessible={false} />
                 <Text
@@ -132,8 +130,6 @@ export default function HomeScreen() {
                   onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
                 />
               </View>
-            </LinearGradient>
-          </View>
         </View>
       </Pressable>
 
@@ -148,7 +144,7 @@ export default function HomeScreen() {
       </Pressable>
 
       <MenuModal visible={menuVisible} onClose={() => setMenuVisible(false)} />
-    </View>
+    </LinearGradient>
   );
 }
 
@@ -171,19 +167,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     justifyContent: 'center',
   },
-  shadowOuter: {
-    borderRadius: radius.lg,
-    ...shadow.outer,
-  },
-  shadowInner: {
-    borderRadius: radius.lg,
-    ...shadow.inner,
-  },
-  card: {
-    borderRadius: radius.lg,
+  content: {
     paddingTop: spacing.xxl,
     paddingBottom: spacing.huge,
-    overflow: 'hidden',
   },
   cityRow: {
     flexDirection: 'row',
