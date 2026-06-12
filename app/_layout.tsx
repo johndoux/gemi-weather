@@ -39,6 +39,14 @@ export default function RootLayout() {
     <>
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="acknowledgements"
+          options={{ presentation: 'formSheet', sheetGrabberVisible: true, headerShown: false }}
+        />
+        <Stack.Screen
+          name="tip-jar"
+          options={{ presentation: 'formSheet', sheetGrabberVisible: true, headerShown: false }}
+        />
       </Stack>
       <StatusBar style="auto" />
     </>

@@ -7,13 +7,15 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useWeatherContext } from '@/contexts/weather-context';
 import { color, fonts, fontSize, iconSize, radius, size, spacing, zIndex } from '@/constants/theme';
 import { getWeatherVerdict, WEATHER_ICONS } from '@/constants/weather';
+import { strings } from '@/constants/strings';
 import { MapPin } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router, useFocusEffect } from 'expo-router';
+import { router, Stack, useFocusEffect } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import * as StoreReview from 'expo-store-review';
 import { useCallback, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { ActivityIndicator, Linking, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 
@@ -54,97 +56,168 @@ export default function HomeScreen() {
   const WeatherIcon = WEATHER_ICONS[condition];
   const topOffset = insets.top + spacing.xs;
 
+  async function handleReview() {
+    try {
+      if (await StoreReview.isAvailableAsync()) {
+        await StoreReview.requestReview();
+      } else {
+        const url = await StoreReview.storeUrl();
+        if (url) await Linking.openURL(url);
+      }
+    } catch {}
+  }
+
   return (
-    <LinearGradient colors={palette.gradientColors} style={[styles.screen, { backgroundColor: palette.background }]}>
-      <StatusBar style={weather.isDay ? 'dark' : 'light'} />
-
-      <Pressable
-        style={[styles.cornerBtn, { top: topOffset, left: spacing.lg }]}
-        onPress={() => router.push('/location')}
-        hitSlop={spacing.xs}
-        accessibilityRole="button"
-        accessibilityLabel="Change location"
-      >
-        <IconSymbol name="mappin.and.ellipse" size={iconSize.md} color={palette.textMuted} />
-      </Pressable>
-
-      {weather.canUseGPS && (
-        <Pressable
-          style={[styles.cornerBtn, { top: topOffset, right: spacing.lg }]}
-          onPress={weather.refreshGPSLocation}
-          hitSlop={spacing.xs}
-          disabled={weather.isGPSRefreshing}
-          accessibilityRole="button"
-          accessibilityLabel="Use my current location"
-          accessibilityState={{ disabled: weather.isGPSRefreshing }}
-        >
-          {weather.isGPSRefreshing
-            ? <ActivityIndicator color={palette.textMuted} size="small" />
-            : <IconSymbol name="location.fill" size={iconSize.md} color={palette.textMuted} />
-          }
-        </Pressable>
+    <>
+      {Platform.OS === 'ios' && (
+        <>
+          <Stack.Screen options={{ headerShown: true, headerTransparent: true }} />
+          <Stack.Toolbar placement="left">
+            <Stack.Toolbar.Button
+              icon="mappin.and.ellipse"
+              onPress={() => router.push('/location')}
+              accessibilityLabel="Change location"
+            />
+          </Stack.Toolbar>
+          {weather.canUseGPS && (
+            <Stack.Toolbar placement="right">
+              <Stack.Toolbar.Button
+                icon="location.fill"
+                onPress={weather.refreshGPSLocation}
+                disabled={weather.isGPSRefreshing}
+                accessibilityLabel="Use my current location"
+              />
+            </Stack.Toolbar>
+          )}
+          <Stack.Toolbar placement="bottom">
+            <Stack.Toolbar.Spacer />
+            <Stack.Toolbar.Menu icon="ellipsis" accessibilityLabel="Open settings menu">
+              <Stack.Toolbar.MenuAction
+                icon="books.vertical"
+                onPress={() => router.push('/acknowledgements')}
+              >
+                {strings.menu_acknowledgements}
+              </Stack.Toolbar.MenuAction>
+              <Stack.Toolbar.MenuAction
+                icon="location"
+                onPress={() => Linking.openSettings()}
+              >
+                {strings.menu_location_permissions}
+              </Stack.Toolbar.MenuAction>
+              <Stack.Toolbar.MenuAction
+                icon="heart"
+                onPress={() => router.push('/tip-jar')}
+              >
+                {strings.menu_support}
+              </Stack.Toolbar.MenuAction>
+              <Stack.Toolbar.MenuAction
+                icon="star"
+                onPress={handleReview}
+              >
+                {strings.menu_write_review}
+              </Stack.Toolbar.MenuAction>
+            </Stack.Toolbar.Menu>
+          </Stack.Toolbar>
+        </>
       )}
 
-      <Pressable
-        style={[styles.cardWrapper, { paddingTop: insets.top + spacing.xs + size.iconBtn + spacing.xl, paddingBottom: insets.bottom + spacing.xs + size.iconBtn + spacing.xl }]}
-        onPress={weather.refresh}
-        accessibilityRole="button"
-        accessibilityLabel={`${Math.round(weather.apparentTempF)} degrees, ${verdict.conditionText}, ${verdict.clothingText}, in ${weather.cityName}`}
-        accessibilityHint="Refreshes the weather"
-      >
-        <View style={[styles.content, { height: cardMaxHeight }]}>
-              <View style={styles.cityRow} accessible={false}>
-                <MapPin size={iconSize.sm} color={palette.textMuted} accessible={false} />
-                <Text
-                  style={[styles.cityText, { color: palette.textMuted, fontFamily: fonts.semibold }]}
-                  accessibilityLabel={`Location: ${weather.cityName}`}
-                >
-                  {weather.cityName}
-                </Text>
-              </View>
+      <LinearGradient colors={palette.gradientColors} style={[styles.screen, { backgroundColor: palette.background }]}>
+        <StatusBar style={weather.isDay ? 'dark' : 'light'} />
 
-              <View style={styles.tempRow} accessible={false}>
-                <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
-                  <WeatherIcon size={iconSize.huge} color={palette.iconColor} />
+        {Platform.OS !== 'ios' && (
+          <Pressable
+            style={[styles.cornerBtn, { top: topOffset, left: spacing.lg }]}
+            onPress={() => router.push('/location')}
+            hitSlop={spacing.xs}
+            accessibilityRole="button"
+            accessibilityLabel="Change location"
+          >
+            <IconSymbol name="mappin.and.ellipse" size={iconSize.md} color={palette.textMuted} />
+          </Pressable>
+        )}
+
+        {Platform.OS !== 'ios' && weather.canUseGPS && (
+          <Pressable
+            style={[styles.cornerBtn, { top: topOffset, right: spacing.lg }]}
+            onPress={weather.refreshGPSLocation}
+            hitSlop={spacing.xs}
+            disabled={weather.isGPSRefreshing}
+            accessibilityRole="button"
+            accessibilityLabel="Use my current location"
+            accessibilityState={{ disabled: weather.isGPSRefreshing }}
+          >
+            {weather.isGPSRefreshing
+              ? <ActivityIndicator color={palette.textMuted} size="small" />
+              : <IconSymbol name="location.fill" size={iconSize.md} color={palette.textMuted} />
+            }
+          </Pressable>
+        )}
+
+        <Pressable
+          style={[styles.cardWrapper, { paddingTop: insets.top + spacing.xs + size.iconBtn + spacing.xl, paddingBottom: insets.bottom + spacing.xs + size.iconBtn + spacing.xl }]}
+          onPress={weather.refresh}
+          accessibilityRole="button"
+          accessibilityLabel={`${Math.round(weather.apparentTempF)} degrees, ${verdict.conditionText}, ${verdict.clothingText}, in ${weather.cityName}`}
+          accessibilityHint="Refreshes the weather"
+        >
+          <View style={[styles.content, { height: cardMaxHeight }]}>
+                <View style={styles.cityRow} accessible={false}>
+                  <MapPin size={iconSize.sm} color={palette.textMuted} accessible={false} />
+                  <Text
+                    style={[styles.cityText, { color: palette.textMuted, fontFamily: fonts.semibold }]}
+                    accessibilityLabel={`Location: ${weather.cityName}`}
+                  >
+                    {weather.cityName}
+                  </Text>
                 </View>
-                <Text
-                  style={[styles.temperature, { color: palette.text, fontFamily: fonts.black }]}
-                  accessibilityLabel={`${Math.round(weather.apparentTempF)} degrees`}
-                >
-                  {Math.round(weather.apparentTempF)}°
+
+                <View style={styles.tempRow} accessible={false}>
+                  <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+                    <WeatherIcon size={iconSize.huge} color={palette.iconColor} />
+                  </View>
+                  <Text
+                    style={[styles.temperature, { color: palette.text, fontFamily: fonts.black }]}
+                    accessibilityLabel={`${Math.round(weather.apparentTempF)} degrees`}
+                  >
+                    {Math.round(weather.apparentTempF)}°
+                  </Text>
+                </View>
+
+                <Text style={[styles.conditionText, { color: palette.textMuted, fontFamily: fonts.bold }]}>
+                  {verdict.conditionText}
                 </Text>
-              </View>
+                <Text style={[styles.clothingText, { color: palette.text, fontFamily: fonts.black }]}>
+                  {verdict.clothingText}
+                </Text>
 
-              <Text style={[styles.conditionText, { color: palette.textMuted, fontFamily: fonts.bold }]}>
-                {verdict.conditionText}
-              </Text>
-              <Text style={[styles.clothingText, { color: palette.text, fontFamily: fonts.black }]}>
-                {verdict.clothingText}
-              </Text>
+                <View style={[styles.monsterContainer, { maxHeight: windowWidth - spacing.md * 2 }]}>
+                  <MonsterCharacter
+                    key={animKey}
+                    verdict={verdict.verdict}
+                    condition={condition}
+                    onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
+                  />
+                </View>
+          </View>
+        </Pressable>
 
-              <View style={[styles.monsterContainer, { maxHeight: windowWidth - spacing.md * 2 }]}>
-                <MonsterCharacter
-                  key={animKey}
-                  verdict={verdict.verdict}
-                  condition={condition}
-                  onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
-                />
-              </View>
-        </View>
-      </Pressable>
+        {Platform.OS !== 'ios' && (
+          <Pressable
+            style={[styles.cornerBtn, { bottom: insets.bottom + spacing.xs, right: spacing.lg }]}
+            onPress={() => setMenuVisible(true)}
+            hitSlop={spacing.xs}
+            accessibilityRole="button"
+            accessibilityLabel="Open settings menu"
+          >
+            <IconSymbol name="ellipsis" size={iconSize.md} color={palette.textMuted} />
+          </Pressable>
+        )}
 
-      <Pressable
-        style={[styles.cornerBtn, { bottom: insets.bottom + spacing.xs, right: spacing.lg }]}
-        onPress={() => setMenuVisible(true)}
-        hitSlop={spacing.xs}
-        accessibilityRole="button"
-        accessibilityLabel="Open settings menu"
-      >
-        <IconSymbol name="ellipsis" size={iconSize.md} color={palette.textMuted} />
-      </Pressable>
-
-      <MenuModal visible={menuVisible} onClose={() => setMenuVisible(false)} />
-    </LinearGradient>
+        {Platform.OS !== 'ios' && (
+          <MenuModal visible={menuVisible} onClose={() => setMenuVisible(false)} />
+        )}
+      </LinearGradient>
+    </>
   );
 }
 
