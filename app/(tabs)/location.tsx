@@ -1,10 +1,12 @@
 import { LocationInputScreen } from '@/components/location-input-screen';
+import { MenuModal } from '@/components/menu-modal';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useWeatherContext } from '@/contexts/weather-context';
-import { color, duration, iconSize, radius, size, spacing, zIndex } from '@/constants/theme';
+import { color, iconSize, radius, size, spacing, zIndex, duration } from '@/constants/theme';
+import { DEFAULT_PALETTE, getWeatherVerdict } from '@/constants/weather';
 import { router } from 'expo-router';
-import { useEffect, useRef } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
   ReduceMotion,
   runOnJS,
@@ -17,6 +19,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 export default function LocationScreen() {
   const weather = useWeatherContext();
   const insets  = useSafeAreaInsets();
+  const [menuVisible, setMenuVisible] = useState(false);
+
+  const palette = weather.status === 'ok'
+    ? getWeatherVerdict(weather.apparentTempF, weather.weatherCode, weather.isDay).palette
+    : DEFAULT_PALETTE;
 
   const opacity   = useSharedValue(0);
   const fadeStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
@@ -49,18 +56,21 @@ export default function LocationScreen() {
   }, [isGPSRefreshing]);
 
   return (
-    <Animated.View style={[styles.container, fadeStyle]}>
-      <LocationInputScreen
-        onDismiss={navigateBack}
-        setManualLocation={weather.setManualLocation}
-        isResolving={isResolving}
-        error={error}
-        canAskAgain={weather.status === 'ok' ? weather.canUseGPS : true}
-      />
+    <View style={[styles.container, { backgroundColor: palette.background }]}>
+      <Animated.View style={[styles.container, fadeStyle]}>
+        <LocationInputScreen
+          palette={palette}
+          onDismiss={navigateBack}
+          setManualLocation={weather.setManualLocation}
+          isResolving={isResolving}
+          error={error}
+          canAskAgain={weather.status === 'ok' ? weather.canUseGPS : true}
+        />
+      </Animated.View>
 
       {weather.status === 'ok' && weather.canUseGPS && (
         <Pressable
-          style={[styles.gpsBtn, { top: insets.top + spacing.xs, right: spacing.lg }]}
+          style={[styles.cornerBtn, { top: insets.top + spacing.xs, right: spacing.lg }]}
           onPress={weather.refreshGPSLocation}
           hitSlop={spacing.xs}
           disabled={isGPSRefreshing}
@@ -69,12 +79,24 @@ export default function LocationScreen() {
           accessibilityState={{ disabled: isGPSRefreshing }}
         >
           {isGPSRefreshing
-            ? <ActivityIndicator color={color.white} size="small" />
-            : <IconSymbol name="location.fill" size={iconSize.md} color={color.white} />
+            ? <ActivityIndicator color={palette.textMuted} size="small" />
+            : <IconSymbol name="location.fill" size={iconSize.md} color={palette.textMuted} />
           }
         </Pressable>
       )}
-    </Animated.View>
+
+      <Pressable
+        style={[styles.cornerBtn, { bottom: insets.bottom + spacing.xs, right: spacing.lg }]}
+        onPress={() => setMenuVisible(true)}
+        hitSlop={spacing.xs}
+        accessibilityRole="button"
+        accessibilityLabel="Open settings menu"
+      >
+        <IconSymbol name="ellipsis" size={iconSize.md} color={palette.textMuted} />
+      </Pressable>
+
+      <MenuModal visible={menuVisible} onClose={() => setMenuVisible(false)} />
+    </View>
   );
 }
 
@@ -82,12 +104,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  gpsBtn: {
+  cornerBtn: {
     position: 'absolute',
     width: size.iconBtn,
     height: size.iconBtn,
     borderRadius: radius.md,
-    backgroundColor: color.brand,
+    backgroundColor: color.btnOverlay,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: zIndex.cornerBtn,

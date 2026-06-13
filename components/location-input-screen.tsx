@@ -1,6 +1,8 @@
 import { strings } from '@/constants/strings';
 import { color, fontSize, fonts, iconSize, radius, shadow, size, spacing } from '@/constants/theme';
+import { ColorPalette, DEFAULT_PALETTE } from '@/constants/weather';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { TriangleAlert } from 'lucide-react-native';
 import { useState } from 'react';
 import {
@@ -18,6 +20,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface LocationInputScreenProps {
+  palette?: ColorPalette;
   onDismiss?: () => void;
   setManualLocation: (text: string) => void;
   isResolving: boolean;
@@ -26,6 +29,7 @@ interface LocationInputScreenProps {
 }
 
 export function LocationInputScreen({
+  palette = DEFAULT_PALETTE,
   onDismiss,
   setManualLocation,
   isResolving,
@@ -44,7 +48,10 @@ export function LocationInputScreen({
       style={styles.flex}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+      <LinearGradient
+        colors={palette.gradientColors}
+        style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom, backgroundColor: palette.background }]}
+      >
         {onDismiss && (
           <Pressable
             style={styles.back}
@@ -53,7 +60,7 @@ export function LocationInputScreen({
             accessibilityRole="button"
             accessibilityLabel="Go back"
           >
-            <MaterialIcons name="chevron-left" size={iconSize.xl} color={color.iconBack} />
+            <MaterialIcons name="chevron-left" size={iconSize.xl} color={palette.textMuted} />
           </Pressable>
         )}
 
@@ -62,13 +69,13 @@ export function LocationInputScreen({
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <Text style={[styles.heading, { fontFamily: fonts.bold }]}>{strings.location_heading}</Text>
-          <Text style={[styles.subtext, { fontFamily: fonts.regular }]}>{strings.location_subtext}</Text>
+          <Text style={[styles.heading, { fontFamily: fonts.bold, color: palette.text }]}>{strings.location_heading}</Text>
+          <Text style={[styles.subtext, { fontFamily: fonts.regular, color: palette.textMuted }]}>{strings.location_subtext}</Text>
 
           <TextInput
-            style={[styles.input, { fontFamily: fonts.regular }]}
+            style={[styles.input, { fontFamily: fonts.regular, color: palette.text }]}
             placeholder={strings.location_placeholder}
-            placeholderTextColor={color.inputPlaceholder}
+            placeholderTextColor={palette.textMuted}
             value={text}
             onChangeText={setText}
             returnKeyType="search"
@@ -88,7 +95,7 @@ export function LocationInputScreen({
           )}
 
           <Pressable
-            style={styles.button}
+            style={[styles.button, { backgroundColor: palette.text }]}
             onPress={handleSubmit}
             disabled={isResolving}
             accessibilityRole="button"
@@ -96,8 +103,8 @@ export function LocationInputScreen({
             accessibilityState={{ disabled: isResolving }}
           >
             {isResolving
-              ? <ActivityIndicator color={color.white} />
-              : <Text style={[styles.buttonText, { fontFamily: fonts.semibold }]}>{strings.location_cta}</Text>
+              ? <ActivityIndicator color={palette.background} />
+              : <Text style={[styles.buttonText, { fontFamily: fonts.semibold, color: palette.background }]}>{strings.location_cta}</Text>
             }
           </Pressable>
 
@@ -107,13 +114,13 @@ export function LocationInputScreen({
               accessibilityRole="link"
               accessibilityLabel={strings.location_settings_link}
             >
-              <Text style={[styles.settingsLink, { fontFamily: fonts.regular }]}>
+              <Text style={[styles.settingsLink, { fontFamily: fonts.regular, color: palette.textMuted }]}>
                 {strings.location_settings_link}
               </Text>
             </Pressable>
           )}
         </ScrollView>
-      </View>
+      </LinearGradient>
     </KeyboardAvoidingView>
   );
 }
@@ -124,7 +131,6 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: color.screenWarm,
   },
   back: {
     marginHorizontal: spacing.lg,
@@ -132,7 +138,7 @@ const styles = StyleSheet.create({
     width: size.iconBtn,
     height: size.iconBtn,
     borderRadius: radius.md,
-    backgroundColor: color.brand,
+    backgroundColor: color.btnOverlay,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -146,12 +152,10 @@ const styles = StyleSheet.create({
   },
   heading: {
     fontSize: fontSize.h2,
-    color: color.textWarm,
     textAlign: 'center',
   },
   subtext: {
     fontSize: fontSize.md,
-    color: color.textSubtle,
     textAlign: 'center',
   },
   input: {
@@ -160,7 +164,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
     padding: spacing.md,
     fontSize: fontSize.base,
-    color: color.textWarm,
     ...shadow.input,
   },
   errorRow: {
@@ -175,7 +178,6 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   button: {
-    backgroundColor: color.brand,
     borderRadius: radius.pill,
     paddingHorizontal: spacing.xxxl,
     paddingVertical: spacing.md,
@@ -183,11 +185,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   buttonText: {
-    color: color.white,
     fontSize: fontSize.base,
   },
   settingsLink: {
-    color: color.textLink,
     fontSize: fontSize.md,
     textDecorationLine: 'underline',
     marginTop: spacing.xs,
