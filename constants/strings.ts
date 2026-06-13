@@ -51,5 +51,4 @@ export const strings = {
   tip_subtitle:    'Gemi is made with love. If it brings a smile to your little one, consider buying us a treat!',
   tip_unavailable: 'Tips are not available right now.',
   tip_thank_you:   'Thank you so much! 🎉',
-  tip_footer:      'Purchases handled securely via the App Store.',
 } as const;

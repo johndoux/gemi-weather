@@ -304,9 +304,6 @@ function TipJarContent({ onBack, theme }: { onBack: () => void; theme: Theme }) 
             </View>
           )}
 
-          {Platform.OS === 'ios' && (
-            <Text style={[styles.footer, { color: theme.secondary }]}>{strings.tip_footer}</Text>
-          )}
         </>
       )}
     </>
