@@ -1,8 +1,9 @@
 import { LocationInputScreen } from '@/components/location-input-screen';
 import { MenuModal } from '@/components/menu-modal';
+import { CornerButtonBg } from '@/components/ui/corner-button-bg';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useWeatherContext } from '@/contexts/weather-context';
-import { color, iconSize, radius, size, spacing, zIndex, duration } from '@/constants/theme';
+import { iconSize, spacing, zIndex, duration } from '@/constants/theme';
 import { DEFAULT_PALETTE, getWeatherVerdict } from '@/constants/weather';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
@@ -24,6 +25,7 @@ export default function LocationScreen() {
   const palette = weather.status === 'ok'
     ? getWeatherVerdict(weather.apparentTempF, weather.weatherCode, weather.isDay).palette
     : DEFAULT_PALETTE;
+  const isDay = weather.status === 'ok' ? weather.isDay : true;
 
   const opacity   = useSharedValue(0);
   const fadeStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
@@ -60,7 +62,7 @@ export default function LocationScreen() {
       <Animated.View style={[styles.container, fadeStyle]}>
         <LocationInputScreen
           palette={palette}
-          isDay={weather.status === 'ok' ? weather.isDay : true}
+          isDay={isDay}
           onDismiss={navigateBack}
           setManualLocation={weather.setManualLocation}
           isResolving={isResolving}
@@ -71,7 +73,7 @@ export default function LocationScreen() {
 
       {weather.status === 'ok' && weather.canUseGPS && (
         <Pressable
-          style={[styles.cornerBtn, { top: insets.top + spacing.xs, right: spacing.lg }]}
+          style={[styles.cornerBtnPos, { top: insets.top + spacing.xs, right: spacing.lg }]}
           onPress={weather.refreshGPSLocation}
           hitSlop={spacing.xs}
           disabled={isGPSRefreshing}
@@ -79,21 +81,25 @@ export default function LocationScreen() {
           accessibilityLabel="Use my current location"
           accessibilityState={{ disabled: isGPSRefreshing }}
         >
-          {isGPSRefreshing
-            ? <ActivityIndicator color={palette.textMuted} size="small" />
-            : <IconSymbol name="location.fill" size={iconSize.md} color={palette.textMuted} />
-          }
+          <CornerButtonBg isDay={isDay}>
+            {isGPSRefreshing
+              ? <ActivityIndicator color={palette.textMuted} size="small" />
+              : <IconSymbol name="location.fill" size={iconSize.md} color={palette.textMuted} />
+            }
+          </CornerButtonBg>
         </Pressable>
       )}
 
       <Pressable
-        style={[styles.cornerBtn, { bottom: insets.bottom + spacing.xs, right: spacing.lg }]}
+        style={[styles.cornerBtnPos, { bottom: insets.bottom + spacing.xs, right: spacing.lg }]}
         onPress={() => setMenuVisible(true)}
         hitSlop={spacing.xs}
         accessibilityRole="button"
         accessibilityLabel="Open settings menu"
       >
-        <IconSymbol name="ellipsis" size={iconSize.md} color={palette.textMuted} />
+        <CornerButtonBg isDay={isDay}>
+          <IconSymbol name="ellipsis" size={iconSize.md} color={palette.textMuted} />
+        </CornerButtonBg>
       </Pressable>
 
       <MenuModal visible={menuVisible} onClose={() => setMenuVisible(false)} />
@@ -105,14 +111,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  cornerBtn: {
+  cornerBtnPos: {
     position: 'absolute',
-    width: size.iconBtn,
-    height: size.iconBtn,
-    borderRadius: radius.md,
-    backgroundColor: color.btnOverlay,
-    alignItems: 'center',
-    justifyContent: 'center',
     zIndex: zIndex.cornerBtn,
   },
 });
