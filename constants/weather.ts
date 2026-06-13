@@ -33,8 +33,6 @@ export interface WeatherVerdict {
   clothingText: string;
 }
 
-export const DEFAULT_PALETTE: ColorPalette = { background: '#f0fdf4', gradientColors: ['rgba(255,255,255,0.95)', 'rgba(220,252,231,0.50)', 'rgba(209,250,229,0.50)'], text: '#14532d', textMuted: '#15803d', iconColor: '#22c55e', cardBorder: 'rgba(255,255,255,0.40)' };
-
 const DAY_PALETTES: Record<VerdictKey, ColorPalette> = {
   scorching: { background: '#fef2f2', gradientColors: ['rgba(255,255,255,0.95)', 'rgba(254,226,226,0.50)', 'rgba(254,215,170,0.50)'], text: '#7f1d1d', textMuted: '#dc2626', iconColor: '#ef4444', cardBorder: 'rgba(255,255,255,0.40)' },
   warm:      { background: '#fff7ed', gradientColors: ['rgba(255,255,255,0.95)', 'rgba(255,237,213,0.50)', 'rgba(254,215,170,0.50)'], text: '#7c2d12', textMuted: '#ea580c', iconColor: '#fbbf24', cardBorder: 'rgba(255,255,255,0.40)' },

@@ -1,12 +1,13 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { SymbolViewProps } from 'expo-symbols';
 import { ComponentProps } from 'react';
 import { OpaqueColorValue, type StyleProp, type TextStyle } from 'react-native';
 
-const MAPPING: Record<string, ComponentProps<typeof MaterialIcons>['name']> = {
+const MAPPING = {
   'mappin.and.ellipse': 'place',
   'location.fill':      'gps-fixed',
   'ellipsis':           'more-horiz',
-};
+} as Record<SymbolViewProps['name'], ComponentProps<typeof MaterialIcons>['name']>;
 
 type IconSymbolName = keyof typeof MAPPING;
 

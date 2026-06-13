@@ -1,6 +1,5 @@
 import { strings } from '@/constants/strings';
 import { color, fontSize, fonts, iconSize, radius, shadow, size, spacing } from '@/constants/theme';
-import type { ColorPalette } from '@/constants/weather';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { TriangleAlert } from 'lucide-react-native';
 import { useState } from 'react';
@@ -24,7 +23,6 @@ interface LocationInputScreenProps {
   isResolving: boolean;
   error?: string;
   canAskAgain: boolean;
-  palette?: ColorPalette;
 }
 
 export function LocationInputScreen({
@@ -33,13 +31,9 @@ export function LocationInputScreen({
   isResolving,
   error,
   canAskAgain,
-  palette,
 }: LocationInputScreenProps) {
   const [text, setText] = useState('');
   const insets = useSafeAreaInsets();
-
-  const textColor   = palette?.text     ?? color.textWarm;
-  const mutedColor  = palette?.textMuted ?? color.textSubtle;
 
   function handleSubmit() {
     if (!isResolving && text.trim()) setManualLocation(text);
@@ -51,7 +45,7 @@ export function LocationInputScreen({
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-        {Platform.OS !== 'ios' && onDismiss && (
+        {onDismiss && (
           <Pressable
             style={styles.back}
             onPress={onDismiss}
@@ -68,12 +62,8 @@ export function LocationInputScreen({
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <Text style={[styles.heading, { fontFamily: fonts.bold, color: textColor }]}>
-            {strings.location_heading}
-          </Text>
-          <Text style={[styles.subtext, { fontFamily: fonts.regular, color: mutedColor }]}>
-            {strings.location_subtext}
-          </Text>
+          <Text style={[styles.heading, { fontFamily: fonts.bold }]}>{strings.location_heading}</Text>
+          <Text style={[styles.subtext, { fontFamily: fonts.regular }]}>{strings.location_subtext}</Text>
 
           <TextInput
             style={[styles.input, { fontFamily: fonts.regular }]}
@@ -117,7 +107,7 @@ export function LocationInputScreen({
               accessibilityRole="link"
               accessibilityLabel={strings.location_settings_link}
             >
-              <Text style={[styles.settingsLink, { fontFamily: fonts.regular, color: mutedColor }]}>
+              <Text style={[styles.settingsLink, { fontFamily: fonts.regular }]}>
                 {strings.location_settings_link}
               </Text>
             </Pressable>
@@ -134,6 +124,7 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
+    backgroundColor: color.screenWarm,
   },
   back: {
     marginHorizontal: spacing.lg,
@@ -155,10 +146,12 @@ const styles = StyleSheet.create({
   },
   heading: {
     fontSize: fontSize.h2,
+    color: color.textWarm,
     textAlign: 'center',
   },
   subtext: {
     fontSize: fontSize.md,
+    color: color.textSubtle,
     textAlign: 'center',
   },
   input: {
@@ -194,6 +187,7 @@ const styles = StyleSheet.create({
     fontSize: fontSize.base,
   },
   settingsLink: {
+    color: color.textLink,
     fontSize: fontSize.md,
     textDecorationLine: 'underline',
     marginTop: spacing.xs,
