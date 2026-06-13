@@ -97,6 +97,21 @@ export const color = {
   iconBack:       'rgba(255,255,255,0.8)',
 } as const;
 
+// ─── Input field (WCAG 2.1 AA compliant) ──────────────────────────────────────
+// Text ≥4.5:1 contrast, placeholder ≥4.5:1 contrast against the input background.
+export const inputColors = {
+  day: {
+    bg:          '#FFFFFF',
+    text:        '#1C1C1E',  // ~18:1 on white
+    placeholder: '#6E6E73',  // ~5.7:1 on white
+  },
+  night: {
+    bg:          '#1C1C1E',
+    text:        '#FFFFFF',  // ~18:1 on dark
+    placeholder: '#98989F',  // ~5.5:1 on dark
+  },
+} as const;
+
 // ─── Elevation / Shadow ───────────────────────────────────────────────────────
 export const shadow = {
   outer: {

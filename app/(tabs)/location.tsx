@@ -60,6 +60,7 @@ export default function LocationScreen() {
       <Animated.View style={[styles.container, fadeStyle]}>
         <LocationInputScreen
           palette={palette}
+          isDay={weather.status === 'ok' ? weather.isDay : true}
           onDismiss={navigateBack}
           setManualLocation={weather.setManualLocation}
           isResolving={isResolving}

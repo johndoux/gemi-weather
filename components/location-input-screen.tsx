@@ -1,7 +1,8 @@
 import { strings } from '@/constants/strings';
-import { color, fontSize, fonts, iconSize, radius, shadow, size, spacing } from '@/constants/theme';
+import { color, fontSize, fonts, iconSize, inputColors, radius, shadow, size, spacing } from '@/constants/theme';
 import { ColorPalette, DEFAULT_PALETTE } from '@/constants/weather';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { TriangleAlert } from 'lucide-react-native';
 import { useState } from 'react';
@@ -21,6 +22,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface LocationInputScreenProps {
   palette?: ColorPalette;
+  isDay?: boolean;
   onDismiss?: () => void;
   setManualLocation: (text: string) => void;
   isResolving: boolean;
@@ -30,6 +32,7 @@ interface LocationInputScreenProps {
 
 export function LocationInputScreen({
   palette = DEFAULT_PALETTE,
+  isDay = true,
   onDismiss,
   setManualLocation,
   isResolving,
@@ -38,6 +41,8 @@ export function LocationInputScreen({
 }: LocationInputScreenProps) {
   const [text, setText] = useState('');
   const insets = useSafeAreaInsets();
+
+  const input = isDay ? inputColors.day : inputColors.night;
 
   function handleSubmit() {
     if (!isResolving && text.trim()) setManualLocation(text);
@@ -73,9 +78,9 @@ export function LocationInputScreen({
           <Text style={[styles.subtext, { fontFamily: fonts.regular, color: palette.textMuted }]}>{strings.location_subtext}</Text>
 
           <TextInput
-            style={[styles.input, { fontFamily: fonts.regular, color: palette.text }]}
+            style={[styles.input, { fontFamily: fonts.regular, color: input.text, backgroundColor: input.bg }]}
             placeholder={strings.location_placeholder}
-            placeholderTextColor={palette.textMuted}
+            placeholderTextColor={input.placeholder}
             value={text}
             onChangeText={setText}
             returnKeyType="search"
@@ -94,19 +99,44 @@ export function LocationInputScreen({
             </View>
           )}
 
-          <Pressable
-            style={[styles.button, { backgroundColor: palette.text }]}
-            onPress={handleSubmit}
-            disabled={isResolving}
-            accessibilityRole="button"
-            accessibilityLabel={strings.location_cta}
-            accessibilityState={{ disabled: isResolving }}
-          >
-            {isResolving
-              ? <ActivityIndicator color={palette.background} />
-              : <Text style={[styles.buttonText, { fontFamily: fonts.semibold, color: palette.background }]}>{strings.location_cta}</Text>
-            }
-          </Pressable>
+          {Platform.OS === 'ios' ? (
+            <Pressable
+              onPress={handleSubmit}
+              disabled={isResolving}
+              accessibilityRole="button"
+              accessibilityLabel={strings.location_cta}
+              accessibilityState={{ disabled: isResolving }}
+            >
+              <BlurView
+                tint={isDay ? 'systemMaterialLight' : 'systemMaterialDark'}
+                intensity={80}
+                style={styles.button}
+              >
+                {isResolving
+                  ? <ActivityIndicator color={input.text} />
+                  : <Text style={[styles.buttonText, { fontFamily: fonts.semibold, color: input.text }]}>
+                      {strings.location_cta}
+                    </Text>
+                }
+              </BlurView>
+            </Pressable>
+          ) : (
+            <Pressable
+              style={[styles.button, { backgroundColor: palette.text }]}
+              onPress={handleSubmit}
+              disabled={isResolving}
+              accessibilityRole="button"
+              accessibilityLabel={strings.location_cta}
+              accessibilityState={{ disabled: isResolving }}
+            >
+              {isResolving
+                ? <ActivityIndicator color={palette.background} />
+                : <Text style={[styles.buttonText, { fontFamily: fonts.semibold, color: palette.background }]}>
+                    {strings.location_cta}
+                  </Text>
+              }
+            </Pressable>
+          )}
 
           {!canAskAgain && (
             <Pressable
@@ -155,12 +185,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   subtext: {
-    fontSize: fontSize.md,
+    fontSize: fontSize.lg,
     textAlign: 'center',
   },
   input: {
     width: '100%',
-    backgroundColor: color.white,
     borderRadius: radius.sm,
     padding: spacing.md,
     fontSize: fontSize.base,
@@ -183,6 +212,8 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     minWidth: size.minBtnWidth,
     alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
   },
   buttonText: {
     fontSize: fontSize.base,
