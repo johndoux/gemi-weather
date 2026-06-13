@@ -8,7 +8,7 @@ import { BlurView } from 'expo-blur';
 import Constants from 'expo-constants';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import * as StoreReview from 'expo-store-review';
-import { ComponentProps, useEffect, useRef, useState } from 'react';
+import { ComponentProps, useEffect, useMemo, useRef, useState } from 'react';
 import {
   BackHandler,
   Dimensions,
@@ -21,6 +21,7 @@ import {
   View,
 } from 'react-native';
 import Animated, {
+  cancelAnimation,
   Easing,
   ReduceMotion,
   runOnJS,
@@ -61,21 +62,23 @@ const PUSH_TIMING  = { duration: 280, easing: Easing.inOut(Easing.ease) };
 function buildTheme(isNight: boolean) {
   if (!isNight || Platform.OS !== 'ios') {
     return {
-      text:      color.ink,
-      secondary: 'rgba(60,60,67,0.6)',
-      tertiary:  'rgba(60,60,67,0.3)',
-      rowBg:     'rgba(255,255,255,0.72)' as const,
-      sheetBg:   Platform.OS === 'ios' ? ('transparent' as const) : color.surfaceSheet,
-      blurTint:  'systemUltraThinMaterialLight' as const,
+      text:       color.ink,
+      secondary:  'rgba(60,60,67,0.6)',
+      tertiary:   'rgba(60,60,67,0.3)',
+      rowBg:      'rgba(255,255,255,0.72)' as const,
+      sheetBg:    Platform.OS === 'ios' ? ('transparent' as const) : color.surfaceSheet,
+      blurTint:   'systemUltraThinMaterialLight' as const,
+      dragHandle: 'rgba(60,60,67,0.4)' as const,
     };
   }
   return {
-    text:      '#FFFFFF',
-    secondary: 'rgba(235,235,245,0.6)',
-    tertiary:  'rgba(235,235,245,0.3)',
-    rowBg:     'rgba(44,44,46,0.72)' as const,
-    sheetBg:   'transparent' as const,
-    blurTint:  'systemUltraThinMaterialDark' as const,
+    text:       '#FFFFFF',
+    secondary:  'rgba(235,235,245,0.6)',
+    tertiary:   'rgba(235,235,245,0.3)',
+    rowBg:      'rgba(44,44,46,0.72)' as const,
+    sheetBg:    'transparent' as const,
+    blurTint:   'systemUltraThinMaterialDark' as const,
+    dragHandle: 'rgba(235,235,245,0.4)' as const,
   };
 }
 
@@ -125,6 +128,7 @@ function MenuRow({ label, onPress, icon, iconSymbol, theme }: {
   const scale      = useSharedValue(1);
   const scaleStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
+  // Android uses the original light-theme palette; the theme prop is iOS-only.
   if (Platform.OS !== 'ios') {
     return (
       <Pressable
@@ -320,7 +324,7 @@ function AckContent({ onBack, theme }: { onBack: () => void; theme: Theme }) {
       >
         {ACK_SECTIONS.map(section => (
           <View key={section.header} style={styles.ackSection}>
-            <Text style={[styles.sectionHeader, { color: theme.secondary }]}>{section.header}</Text>
+            <Text style={[styles.sectionHeader, { fontFamily: fonts.semibold, color: theme.secondary }]}>{section.header}</Text>
             <View style={[styles.ackCard, { backgroundColor: theme.rowBg }]}>
               {section.items.map((item, i) => (
                 <View key={item.name}>
@@ -356,7 +360,7 @@ export function MenuModal({ visible, onClose, isDay }: MenuModalProps) {
   const [active, setActive] = useState(false);
 
   const isNight = !isDay && Platform.OS === 'ios';
-  const theme   = buildTheme(isNight);
+  const theme   = useMemo(() => buildTheme(isNight), [isNight]);
 
   // Version label built from native runtime values — never hardcoded
   const appVersion  = Constants.nativeAppVersion  ?? Constants.expoConfig?.version ?? '—';
@@ -388,6 +392,9 @@ export function MenuModal({ visible, onClose, isDay }: MenuModalProps) {
 
   // Pan gesture for drag-handle dismiss
   const dragGesture = Gesture.Pan()
+    .onStart(() => {
+      cancelAnimation(translateY);
+    })
     .onUpdate(e => {
       if (e.translationY > 0) translateY.value = e.translationY;
     })
@@ -583,19 +590,19 @@ export function MenuModal({ visible, onClose, isDay }: MenuModalProps) {
         <BlurView
           tint={theme.blurTint}
           intensity={80}
-          style={[StyleSheet.absoluteFill, { borderRadius: radius.sheet }]}
+          style={[StyleSheet.absoluteFill, { borderRadius: radius.xl }]}
         />
 
         <GestureDetector gesture={dragGesture}>
           <View style={styles.dragHandleArea}>
-            <View style={styles.dragHandle} />
+            <View style={[styles.dragHandle, { backgroundColor: theme.dragHandle }]} />
           </View>
         </GestureDetector>
 
         {phase === 'acknowledgements' ? (
-          <View style={[styles.ackLayout, { paddingBottom: Math.max(insets.bottom, spacing.md) }]}>
+          <Animated.View style={[styles.ackLayout, slideXStyle, { paddingBottom: Math.max(insets.bottom, spacing.md) }]}>
             <AckContent onBack={() => navigate('menu', 'pop')} theme={theme} />
-          </View>
+          </Animated.View>
         ) : (
           <Animated.View style={[{ flex: 1 }, slideXStyle]}>
             <ScrollView
@@ -651,9 +658,10 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    marginHorizontal: spacing.sm,  // 12pt
-    marginBottom: spacing.md,      // 16pt
-    borderRadius: radius.sheet,    // 28pt all corners
+    marginHorizontal: spacing.sm,
+    marginBottom: spacing.md,
+    borderRadius: radius.xl,
+    overflow: 'hidden',
     maxHeight: ACK_HEIGHT,
     zIndex: zIndex.sheet,
   },
@@ -666,7 +674,6 @@ const styles = StyleSheet.create({
     width: 36,
     height: 4,
     borderRadius: 2,
-    backgroundColor: 'rgba(120,120,128,0.4)',
   },
   scrollContent: {
     paddingHorizontal: spacing.sm,  // 12pt
@@ -724,7 +731,6 @@ const styles = StyleSheet.create({
   },
   sectionHeader: {
     fontSize: fontSize.caption,   // 12pt
-    fontFamily: undefined,        // set inline
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     paddingHorizontal: spacing.xxs,
