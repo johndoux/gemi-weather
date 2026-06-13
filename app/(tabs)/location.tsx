@@ -102,7 +102,7 @@ export default function LocationScreen() {
         </CornerButtonBg>
       </Pressable>
 
-      <MenuModal visible={menuVisible} onClose={() => setMenuVisible(false)} />
+      <MenuModal visible={menuVisible} onClose={() => setMenuVisible(false)} isDay={isDay} />
     </View>
   );
 }
