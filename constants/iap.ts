@@ -1,9 +1,14 @@
-// These product IDs must be created as Consumable IAP products in:
-//   App Store Connect → your app → In-App Purchases
-//   Google Play Console → your app → Monetize → Products → In-app products
-// The strings here must exactly match the product IDs in both consoles.
-export const TIP_PRODUCT_IDS = [
-  'tip.small',   // $0.99
-  'tip.medium',  // $2.99
-  'tip.large',   // $4.99
+export const TIP_TIERS = [
+  { id: 'tip.small',  emoji: '☕', label: 'Small treat',  desc: 'Buy Gemi a coffee'   },
+  { id: 'tip.medium', emoji: '🧇', label: 'Warm thanks',  desc: 'Buy Gemi breakfast'  },
+  { id: 'tip.large',  emoji: '🎉', label: 'Big love',     desc: 'Celebrate with Gemi' },
 ] as const;
+
+export type TipTier = typeof TIP_TIERS[number];
+
+// Product IDs derived from TIP_TIERS so there's a single source of truth.
+export const TIP_PRODUCT_IDS = TIP_TIERS.map(t => t.id) as [
+  'tip.small',
+  'tip.medium',
+  'tip.large',
+];

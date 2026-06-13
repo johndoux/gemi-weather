@@ -147,7 +147,7 @@ export default function HomeScreen() {
         <IconSymbol name="ellipsis" size={iconSize.md} color={palette.textMuted} />
       </Pressable>
 
-      <MenuModal visible={menuVisible} onClose={() => setMenuVisible(false)} />
+      <MenuModal visible={menuVisible} onClose={() => setMenuVisible(false)} isDay={weather.isDay} />
     </View>
   );
 }
