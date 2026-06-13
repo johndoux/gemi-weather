@@ -1,18 +1,19 @@
 import type { ProductIOS } from 'expo-iap';
-import { ACKNOWLEDGEMENTS } from '@/constants/acknowledgements';
-import { TIP_PRODUCT_IDS } from '@/constants/iap';
+import { ACK_SECTIONS } from '@/constants/acknowledgements';
+import { TIP_TIERS, TIP_PRODUCT_IDS } from '@/constants/iap';
 import { strings } from '@/constants/strings';
-import { color, duration, fontSize, fonts, iconSize, radius, size, spacing, zIndex } from '@/constants/theme';
+import { color, duration, fonts, fontSize, iconSize, radius, spacing, zIndex } from '@/constants/theme';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { BlurView } from 'expo-blur';
+import Constants from 'expo-constants';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import * as StoreReview from 'expo-store-review';
 import { ComponentProps, useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   BackHandler,
   Dimensions,
-  LayoutAnimation,
   Linking,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -20,14 +21,17 @@ import {
   View,
 } from 'react-native';
 import Animated, {
+  Easing,
   ReduceMotion,
   runOnJS,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
+  withDelay,
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 let IAPModule: typeof import('expo-iap') | null = null;
@@ -38,86 +42,179 @@ type Phase = 'menu' | 'acknowledgements' | 'tip-jar';
 interface MenuModalProps {
   visible: boolean;
   onClose: () => void;
+  isDay: boolean;
 }
 
-
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const ACK_HEIGHT    = SCREEN_HEIGHT - 85;
 const CLOSED_OFFSET = SCREEN_HEIGHT;
 
-// Figma spring spec — runs on UI thread, same on both platforms.
-const SLIDE_SPRING = { stiffness: 130.6, damping: 17.14, mass: 1, reduceMotion: ReduceMotion.System };
+// Spring specs derived from design: response=0.42 dampingFraction=0.82
+const CLOSE_SPRING = { stiffness: 224, damping: 24.5, mass: 1, reduceMotion: ReduceMotion.System };
+// Spring for row tap feedback: response=0.3 dampingFraction=0.7
+const ROW_SPRING   = { stiffness: 438, damping: 29,   mass: 1, reduceMotion: ReduceMotion.System };
+// Phase slide timing
+const PUSH_TIMING  = { duration: 280, easing: Easing.inOut(Easing.ease) };
 
-const PHASE_LAYOUT_ANIM = {
-  duration: duration.phaseAnim,
-  create: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
-  update: { type: LayoutAnimation.Types.spring, springDamping: 0.75 },
-  delete: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
-};
+// ─── Theme helper ─────────────────────────────────────────────────────────────
+
+function buildTheme(isNight: boolean) {
+  if (!isNight || Platform.OS !== 'ios') {
+    return {
+      text:      color.ink,
+      secondary: 'rgba(60,60,67,0.6)',
+      tertiary:  'rgba(60,60,67,0.3)',
+      rowBg:     'rgba(255,255,255,0.72)' as const,
+      sheetBg:   Platform.OS === 'ios' ? ('transparent' as const) : color.surfaceSheet,
+      blurTint:  'systemUltraThinMaterialLight' as const,
+    };
+  }
+  return {
+    text:      '#FFFFFF',
+    secondary: 'rgba(235,235,245,0.6)',
+    tertiary:  'rgba(235,235,245,0.3)',
+    rowBg:     'rgba(44,44,46,0.72)' as const,
+    sheetBg:   'transparent' as const,
+    blurTint:  'systemUltraThinMaterialDark' as const,
+  };
+}
+
+type Theme = ReturnType<typeof buildTheme>;
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
-function Divider() {
-  return <View style={styles.divider} />;
-}
-
-function PhaseHeader({ title, onBack, onClose }: {
-  title: string;
-  onBack: () => void;
-  onClose: () => void;
-}) {
-  return (
-    <View style={styles.phaseHeader}>
-      <Pressable
-        onPress={onBack}
-        style={styles.iconButton}
-        hitSlop={spacing.xs}
-        accessibilityRole="button"
-        accessibilityLabel="Go back"
-      >
-        <MaterialIcons name="chevron-left" size={iconSize.md} color={color.ink} />
-      </Pressable>
-      <Text style={[styles.phaseTitle, { fontFamily: fonts.medium }]}>{title}</Text>
-      <Pressable
-        onPress={onClose}
-        style={styles.iconButton}
-        hitSlop={spacing.xs}
-        accessibilityRole="button"
-        accessibilityLabel="Close menu"
-      >
-        <MaterialIcons name="check" size={iconSize.md} color={color.ink} />
-      </Pressable>
-    </View>
-  );
-}
-
-function MenuRow({ label, onPress, icon, iconSymbol }: {
-  label: string;
+function CircleButton({ icon, onPress, label, theme }: {
+  icon: ComponentProps<typeof MaterialIcons>['name'];
   onPress: () => void;
-  icon?: ComponentProps<typeof MaterialIcons>['name'];
-  iconSymbol?: ComponentProps<typeof IconSymbol>['name'];
+  label: string;
+  theme: Theme;
 }) {
   return (
     <Pressable
-      style={styles.menuRow}
       onPress={onPress}
-      hitSlop={spacing.xxs}
+      style={[styles.circleBtn, { backgroundColor: theme.rowBg }]}
+      hitSlop={spacing.xs}
       accessibilityRole="button"
       accessibilityLabel={label}
     >
-      <View style={styles.menuRowLeft}>
-        {iconSymbol
-          ? <IconSymbol name={iconSymbol} size={iconSize.lg} color={color.ink} />
-          : <MaterialIcons name={icon!} size={iconSize.lg} color={color.ink} />
-        }
-        <Text style={[styles.menuRowLabel, { fontFamily: fonts.regular }]}>{label}</Text>
-      </View>
-      <MaterialIcons name="chevron-right" size={iconSize.lg} color={color.ink} />
+      <MaterialIcons name={icon} size={iconSize.sm} color={theme.text} />
     </Pressable>
   );
 }
 
-function TipJarContent({ onBack, onClose }: { onBack: () => void; onClose: () => void }) {
+function PhaseHeader({ title, onBack, theme }: {
+  title: string;
+  onBack: () => void;
+  theme: Theme;
+}) {
+  return (
+    <View style={styles.phaseHeader}>
+      <CircleButton icon="arrow-back" onPress={onBack} label="Go back" theme={theme} />
+      <Text style={[styles.phaseTitle, { fontFamily: fonts.bold, color: theme.text }]}>{title}</Text>
+    </View>
+  );
+}
+
+function MenuRow({ label, onPress, icon, iconSymbol, theme }: {
+  label: string;
+  onPress: () => void;
+  icon?: ComponentProps<typeof MaterialIcons>['name'];
+  iconSymbol?: ComponentProps<typeof IconSymbol>['name'];
+  theme: Theme;
+}) {
+  const scale      = useSharedValue(1);
+  const scaleStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+
+  if (Platform.OS !== 'ios') {
+    return (
+      <Pressable
+        style={styles.androidRow}
+        onPress={onPress}
+        hitSlop={spacing.xxs}
+        accessibilityRole="button"
+        accessibilityLabel={label}
+      >
+        <View style={styles.rowLeft}>
+          {iconSymbol
+            ? <IconSymbol name={iconSymbol} size={iconSize.sm} color={color.ink} />
+            : <MaterialIcons name={icon!} size={iconSize.sm} color={color.ink} />
+          }
+          <Text style={[styles.rowLabel, { fontFamily: fonts.regular, color: color.ink }]}>{label}</Text>
+        </View>
+        <MaterialIcons name="chevron-right" size={iconSize.sm} color={color.ink} />
+      </Pressable>
+    );
+  }
+
+  return (
+    <Animated.View style={[styles.rowCard, { backgroundColor: theme.rowBg }, scaleStyle]}>
+      <Pressable
+        style={styles.rowInner}
+        onPressIn={() => { scale.value = withSpring(0.97, ROW_SPRING); }}
+        onPressOut={() => { scale.value = withSpring(1.0, ROW_SPRING); }}
+        onPress={onPress}
+        hitSlop={spacing.xxs}
+        accessibilityRole="button"
+        accessibilityLabel={label}
+      >
+        <View style={styles.rowLeft}>
+          {iconSymbol
+            ? <IconSymbol name={iconSymbol} size={iconSize.sm} color={theme.secondary} />
+            : <MaterialIcons name={icon!} size={iconSize.sm} color={theme.secondary} />
+          }
+          <Text style={[styles.rowLabel, { fontFamily: fonts.semibold, color: theme.text }]}>{label}</Text>
+        </View>
+        <MaterialIcons name="chevron-right" size={iconSize.sm} color={theme.tertiary} />
+      </Pressable>
+    </Animated.View>
+  );
+}
+
+function TierRow({ tier, displayPrice, onPurchase, index, theme }: {
+  tier: typeof TIP_TIERS[number];
+  displayPrice: string;
+  onPurchase: (id: string) => void;
+  index: number;
+  theme: Theme;
+}) {
+  const opacity = useSharedValue(0);
+  const ty      = useSharedValue(12);
+  const scale   = useSharedValue(1);
+
+  useEffect(() => {
+    opacity.value = withDelay(index * 60, withSpring(1, ROW_SPRING));
+    ty.value      = withDelay(index * 60, withSpring(0, ROW_SPRING));
+  }, []);
+
+  const animStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ translateY: ty.value }, { scale: scale.value }],
+  }));
+
+  return (
+    <Animated.View style={[styles.rowCard, { backgroundColor: theme.rowBg }, animStyle]}>
+      <Pressable
+        style={styles.rowInner}
+        onPressIn={() => { scale.value = withSpring(0.97, ROW_SPRING); }}
+        onPressOut={() => { scale.value = withSpring(1.0, ROW_SPRING); }}
+        onPress={() => onPurchase(tier.id)}
+        accessibilityRole="button"
+        accessibilityLabel={`${tier.label} – ${displayPrice}`}
+      >
+        <View style={styles.rowLeft}>
+          <Text style={styles.tierEmoji}>{tier.emoji}</Text>
+          <View>
+            <Text style={[styles.tierLabel, { fontFamily: fonts.bold, color: theme.text }]}>{tier.label}</Text>
+            <Text style={[styles.tierDesc,  { fontFamily: fonts.regular, color: theme.secondary }]}>{tier.desc}</Text>
+          </View>
+        </View>
+        <Text style={[styles.tierPrice, { fontFamily: fonts.black, color: theme.text }]}>{displayPrice}</Text>
+      </Pressable>
+    </Animated.View>
+  );
+}
+
+function TipJarContent({ onBack, theme }: { onBack: () => void; theme: Theme }) {
   const [products, setProducts] = useState<ProductIOS[]>([]);
   const [loading,  setLoading]  = useState(true);
   const [thankYou, setThankYou] = useState(false);
@@ -139,7 +236,6 @@ function TipJarContent({ onBack, onClose }: { onBack: () => void; onClose: () =>
       setLoading(false);
     }
 
-    // Finish any transactions that completed (including leftovers from prior sessions)
     const sub = IAPModule.purchaseUpdatedListener(async (purchase: any) => {
       try {
         await IAPModule!.finishTransaction({ purchase, isConsumable: true });
@@ -170,54 +266,112 @@ function TipJarContent({ onBack, onClose }: { onBack: () => void; onClose: () =>
 
   return (
     <>
-      <PhaseHeader title={strings.menu_support} onBack={onBack} onClose={onClose} />
-      <View style={[styles.card, styles.tipCard]}>
-        {thankYou ? (
-          <Text style={[styles.tipThankYou, { fontFamily: fonts.regular }]}>{strings.tip_thank_you}</Text>
-        ) : (
-          <>
-            <Text style={[styles.phaseSubtitle, { fontFamily: fonts.regular }]}>{strings.tip_subtitle}</Text>
-            {loading ? (
-              <ActivityIndicator style={{ marginTop: spacing.md }} />
-            ) : products.length === 0 ? (
-              <Text style={[styles.tipUnavailable, { fontFamily: fonts.regular }]}>{strings.tip_unavailable}</Text>
-            ) : (
-              products.map((p) => (
-                <Pressable
-                  key={p.id}
-                  style={styles.tipButton}
-                  onPress={() => purchase(p.id)}
-                  accessibilityRole="button"
-                  accessibilityLabel={p.displayPrice ?? p.id}
-                >
-                  <Text style={[styles.tipButtonText, { fontFamily: fonts.semibold }]}>
-                    {p.displayPrice ?? p.id}
-                  </Text>
-                </Pressable>
-              ))
-            )}
-          </>
-        )}
-      </View>
+      <PhaseHeader title={strings.menu_support} onBack={onBack} theme={theme} />
+
+      {thankYou ? (
+        <Text style={[styles.tipThankYou, { fontFamily: fonts.regular, color: theme.text }]}>
+          {strings.tip_thank_you}
+        </Text>
+      ) : (
+        <>
+          <Text style={[styles.tipSubtitle, { fontFamily: fonts.regular, color: theme.secondary }]}>
+            {strings.tip_subtitle}
+          </Text>
+
+          {loading ? null : products.length === 0 ? (
+            <Text style={[styles.tipUnavailable, { fontFamily: fonts.regular, color: theme.secondary }]}>
+              {strings.tip_unavailable}
+            </Text>
+          ) : (
+            <View style={styles.rowGroup}>
+              {products.map((p, i) => {
+                const tierMeta = TIP_TIERS.find(t => t.id === p.id) ?? TIP_TIERS[i];
+                return (
+                  <TierRow
+                    key={p.id}
+                    tier={tierMeta}
+                    displayPrice={p.displayPrice ?? p.id}
+                    onPurchase={purchase}
+                    index={i}
+                    theme={theme}
+                  />
+                );
+              })}
+            </View>
+          )}
+
+          {Platform.OS === 'ios' && (
+            <Text style={[styles.footer, { color: theme.secondary }]}>{strings.tip_footer}</Text>
+          )}
+        </>
+      )}
+    </>
+  );
+}
+
+function AckContent({ onBack, theme }: { onBack: () => void; theme: Theme }) {
+  return (
+    <>
+      <PhaseHeader title={strings.menu_acknowledgements} onBack={onBack} theme={theme} />
+      <ScrollView
+        bounces={false}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.ackScrollContent}
+      >
+        {ACK_SECTIONS.map(section => (
+          <View key={section.header} style={styles.ackSection}>
+            <Text style={[styles.sectionHeader, { color: theme.secondary }]}>{section.header}</Text>
+            <View style={[styles.ackCard, { backgroundColor: theme.rowBg }]}>
+              {section.items.map((item, i) => (
+                <View key={item.name}>
+                  {i > 0 && (
+                    <View style={[styles.hairline, { backgroundColor: theme.tertiary }]} />
+                  )}
+                  <Pressable
+                    style={styles.rowInner}
+                    onPress={() => Linking.openURL(item.url)}
+                    accessibilityRole="link"
+                    accessibilityLabel={item.name}
+                  >
+                    <Text style={[styles.ackName, { fontFamily: fonts.regular, color: theme.text }]}>
+                      {item.name}
+                    </Text>
+                  </Pressable>
+                </View>
+              ))}
+            </View>
+          </View>
+        ))}
+      </ScrollView>
     </>
   );
 }
 
 // ─── Main modal ──────────────────────────────────────────────────────────────
 
-export function MenuModal({ visible, onClose }: MenuModalProps) {
+export function MenuModal({ visible, onClose, isDay }: MenuModalProps) {
   const insets       = useSafeAreaInsets();
   const reduceMotion = useReducedMotion();
   const [phase,  setPhase]  = useState<Phase>('menu');
   const [active, setActive] = useState(false);
 
-  const sheetH = useSharedValue(0);
+  const isNight = !isDay && Platform.OS === 'ios';
+  const theme   = buildTheme(isNight);
 
+  // Version label built from native runtime values — never hardcoded
+  const appVersion  = Constants.nativeAppVersion  ?? Constants.expoConfig?.version ?? '—';
+  const buildNum    = Constants.nativeBuildVersion;
+  const versionLabel = buildNum
+    ? `Gemi Weather • Version ${appVersion} (Build ${buildNum})`
+    : `Gemi Weather • Version ${appVersion}`;
+
+  const sheetH = useSharedValue(0);
   const phaseRef  = useRef<Phase>('menu');
   const measuredH = useRef<Partial<Record<Phase, number>>>({});
 
   const translateY      = useSharedValue(CLOSED_OFFSET);
   const backdropOpacity = useSharedValue(0);
+  const slideX          = useSharedValue(0);
 
   const sheetStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: translateY.value }],
@@ -227,6 +381,23 @@ export function MenuModal({ visible, onClose }: MenuModalProps) {
   const backdropStyle = useAnimatedStyle(() => ({
     opacity: backdropOpacity.value,
   }));
+
+  const slideXStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: slideX.value }],
+  }));
+
+  // Pan gesture for drag-handle dismiss
+  const dragGesture = Gesture.Pan()
+    .onUpdate(e => {
+      if (e.translationY > 0) translateY.value = e.translationY;
+    })
+    .onEnd(e => {
+      if (e.translationY > 80 || e.velocityY > 500) {
+        runOnJS(onClose)();
+      } else {
+        translateY.value = withSpring(0, CLOSE_SPRING);
+      }
+    });
 
   useEffect(() => {
     if (!active) return;
@@ -241,30 +412,39 @@ export function MenuModal({ visible, onClose }: MenuModalProps) {
     if (visible) {
       phaseRef.current = 'menu';
       setPhase('menu');
+      slideX.value = 0;
       setActive(true);
       sheetH.value = measuredH.current.menu ?? 0;
       backdropOpacity.value = withTiming(1, { duration: duration.backdropIn, reduceMotion: ReduceMotion.System });
-      translateY.value = withSpring(0, SLIDE_SPRING);
+      translateY.value = withSpring(0, CLOSE_SPRING);
     } else {
       backdropOpacity.value = withTiming(0, { duration: duration.backdropOut, reduceMotion: ReduceMotion.System });
       translateY.value = withSpring(
         CLOSED_OFFSET,
-        SLIDE_SPRING,
+        CLOSE_SPRING,
         (done) => { if (done) runOnJS(setActive)(false); },
       );
     }
   }, [visible]);
 
-  function navigate(to: Phase) {
-    phaseRef.current = to;
-    if (!reduceMotion) LayoutAnimation.configureNext(PHASE_LAYOUT_ANIM);
-    setPhase(to);
-    if (to === 'acknowledgements') {
-      sheetH.value = withSpring(ACK_HEIGHT, SLIDE_SPRING);
-    } else {
-      const h = measuredH.current[to] ?? measuredH.current.menu;
-      if (h) sheetH.value = withSpring(h, SLIDE_SPRING);
-    }
+  function navigate(to: Phase, dir: 'push' | 'pop') {
+    const exitDir  = dir === 'push' ? -SCREEN_WIDTH : SCREEN_WIDTH;
+    const enterDir = dir === 'push' ?  SCREEN_WIDTH : -SCREEN_WIDTH;
+
+    slideX.value = withTiming(exitDir, PUSH_TIMING, done => {
+      if (!done) return;
+      runOnJS(setPhase)(to);
+      phaseRef.current = to;
+      slideX.value = enterDir;
+      slideX.value = withTiming(0, PUSH_TIMING);
+
+      if (to === 'acknowledgements') {
+        sheetH.value = withSpring(ACK_HEIGHT, CLOSE_SPRING);
+      } else {
+        const h = measuredH.current[to] ?? measuredH.current.menu;
+        if (h) sheetH.value = withSpring(h, CLOSE_SPRING);
+      }
+    });
   }
 
   function onContentSizeChange(_: number, h: number) {
@@ -273,7 +453,7 @@ export function MenuModal({ visible, onClose }: MenuModalProps) {
     const prev = measuredH.current[ph];
     measuredH.current[ph] = h;
     if (prev !== h) {
-      sheetH.value = sheetH.value > 0 ? withSpring(h, SLIDE_SPRING) : h;
+      sheetH.value = sheetH.value > 0 ? withSpring(h, CLOSE_SPRING) : h;
     }
   }
 
@@ -294,6 +474,98 @@ export function MenuModal({ visible, onClose }: MenuModalProps) {
     onClose();
   }
 
+  // ── Android: keep original layout ─────────────────────────────────────────
+
+  if (Platform.OS !== 'ios') {
+    return (
+      <>
+        <Animated.View
+          style={[styles.backdrop, backdropStyle]}
+          pointerEvents={active ? 'box-none' : 'none'}
+        >
+          <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
+        </Animated.View>
+
+        <Animated.View
+          style={[styles.androidSheet, { maxHeight: ACK_HEIGHT }, sheetStyle]}
+          pointerEvents={active ? 'auto' : 'none'}
+          accessibilityViewIsModal={active}
+        >
+          {phase === 'acknowledgements' ? (
+            <View style={[styles.androidAckLayout, { paddingBottom: Math.max(insets.bottom, spacing.md) }]}>
+              <PhaseHeader
+                title={strings.menu_acknowledgements}
+                onBack={() => navigate('menu', 'pop')}
+                theme={theme}
+              />
+              <View style={[styles.androidCard, { flex: 1, overflow: 'hidden' }]}>
+                <ScrollView bounces={false} showsVerticalScrollIndicator={false}>
+                  {ACK_SECTIONS.flatMap(s => s.items).map((item, i, arr) => (
+                    <View key={item.name}>
+                      {i > 0 && <View style={styles.androidDivider} />}
+                      <Pressable
+                        style={styles.androidAckRow}
+                        onPress={() => Linking.openURL(item.url)}
+                        accessibilityRole="link"
+                        accessibilityLabel={item.name}
+                      >
+                        <Text style={[styles.ackName, { fontFamily: fonts.regular, color: color.ink }]}>{item.name}</Text>
+                        <MaterialIcons name="open-in-new" size={iconSize.sm} color={color.ink} />
+                      </Pressable>
+                    </View>
+                  ))}
+                </ScrollView>
+              </View>
+            </View>
+          ) : (
+            <ScrollView
+              bounces={false}
+              showsVerticalScrollIndicator={false}
+              onContentSizeChange={onContentSizeChange}
+              contentContainerStyle={[
+                styles.androidScrollContent,
+                { paddingBottom: Math.max(insets.bottom, spacing.md) },
+              ]}
+            >
+              {phase === 'menu' && (
+                <>
+                  <View style={styles.androidHeading}>
+                    <Text style={[styles.headingTitle, { fontFamily: fonts.bold, color: color.ink }]}>
+                      {strings.menu_settings}
+                    </Text>
+                    <Pressable
+                      onPress={onClose}
+                      style={styles.androidIconBtn}
+                      hitSlop={spacing.xs}
+                      accessibilityRole="button"
+                      accessibilityLabel="Close menu"
+                    >
+                      <MaterialIcons name="close" size={iconSize.md} color={color.ink} />
+                    </Pressable>
+                  </View>
+                  <View style={styles.androidCard}>
+                    <MenuRow label={strings.menu_acknowledgements}     icon="menu-book"          onPress={() => navigate('acknowledgements', 'push')} theme={theme} />
+                    <View style={styles.androidDivider} />
+                    <MenuRow label={strings.menu_location_permissions} iconSymbol="location.fill" onPress={handleLocationPermissions} theme={theme} />
+                    <View style={styles.androidDivider} />
+                    <MenuRow label={strings.menu_support}              icon="favorite"            onPress={() => navigate('tip-jar', 'push')} theme={theme} />
+                    <View style={styles.androidDivider} />
+                    <MenuRow label={strings.menu_write_review}         icon="star"                onPress={handleReview} theme={theme} />
+                  </View>
+                </>
+              )}
+              {phase === 'tip-jar' && (
+                <TipJarContent onBack={() => navigate('menu', 'pop')} theme={theme} />
+              )}
+            </ScrollView>
+          )}
+        </Animated.View>
+      </>
+    );
+  }
+
+  // ── iOS: new Liquid Glass design ──────────────────────────────────────────
+
   return (
     <>
       <Animated.View
@@ -304,78 +576,62 @@ export function MenuModal({ visible, onClose }: MenuModalProps) {
       </Animated.View>
 
       <Animated.View
-        style={[styles.sheet, { maxHeight: ACK_HEIGHT }, sheetStyle]}
+        style={[styles.sheet, sheetStyle]}
         pointerEvents={active ? 'auto' : 'none'}
         accessibilityViewIsModal={active}
       >
+        <BlurView
+          tint={theme.blurTint}
+          intensity={80}
+          style={[StyleSheet.absoluteFill, { borderRadius: radius.sheet }]}
+        />
+
+        <GestureDetector gesture={dragGesture}>
+          <View style={styles.dragHandleArea}>
+            <View style={styles.dragHandle} />
+          </View>
+        </GestureDetector>
+
         {phase === 'acknowledgements' ? (
           <View style={[styles.ackLayout, { paddingBottom: Math.max(insets.bottom, spacing.md) }]}>
-            <PhaseHeader
-              title={strings.menu_acknowledgements}
-              onBack={() => navigate('menu')}
-              onClose={onClose}
-            />
-            <View style={[styles.card, styles.ackCard]}>
-              <ScrollView bounces={false} showsVerticalScrollIndicator={false}>
-                {ACKNOWLEDGEMENTS.map((lib, i) => (
-                  <View key={lib.name}>
-                    {i > 0 && <Divider />}
-                    <Pressable
-                      style={styles.ackRow}
-                      onPress={() => Linking.openURL(lib.url)}
-                      accessibilityRole="link"
-                      accessibilityLabel={lib.name}
-                    >
-                      <Text style={[styles.ackName, { fontFamily: fonts.regular }]}>{lib.name}</Text>
-                      <MaterialIcons name="open-in-new" size={iconSize.sm} color={color.ink} />
-                    </Pressable>
-                  </View>
-                ))}
-                <Text style={[styles.dataSource, { fontFamily: fonts.regular }]}>
-                  {strings.ack_data_source}
-                </Text>
-              </ScrollView>
-            </View>
+            <AckContent onBack={() => navigate('menu', 'pop')} theme={theme} />
           </View>
         ) : (
-          <ScrollView
-            bounces={false}
-            showsVerticalScrollIndicator={false}
-            onContentSizeChange={onContentSizeChange}
-            contentContainerStyle={[
-              styles.scrollContent,
-              { paddingBottom: Math.max(insets.bottom, spacing.md) },
-            ]}
-          >
-            {phase === 'menu' && (
-              <>
-                <View style={styles.heading}>
-                  <Text style={[styles.headingTitle, { fontFamily: fonts.bold }]}>{strings.menu_settings}</Text>
-                  <Pressable
-                    onPress={onClose}
-                    style={styles.iconButton}
-                    hitSlop={spacing.xs}
-                    accessibilityRole="button"
-                    accessibilityLabel="Close menu"
-                  >
-                    <MaterialIcons name="check" size={iconSize.md} color={color.ink} />
-                  </Pressable>
-                </View>
-                <View style={styles.card}>
-                  <MenuRow label={strings.menu_acknowledgements}     icon="menu-book"          onPress={() => navigate('acknowledgements')} />
-                  <Divider />
-                  <MenuRow label={strings.menu_location_permissions} iconSymbol="location.fill" onPress={handleLocationPermissions} />
-                  <Divider />
-                  <MenuRow label={strings.menu_support}              icon="favorite"            onPress={() => navigate('tip-jar')} />
-                  <Divider />
-                  <MenuRow label={strings.menu_write_review}         icon="star"                onPress={handleReview} />
-                </View>
-              </>
-            )}
-            {phase === 'tip-jar' && (
-              <TipJarContent onBack={() => navigate('menu')} onClose={onClose} />
-            )}
-          </ScrollView>
+          <Animated.View style={[{ flex: 1 }, slideXStyle]}>
+            <ScrollView
+              bounces={false}
+              showsVerticalScrollIndicator={false}
+              onContentSizeChange={onContentSizeChange}
+              contentContainerStyle={[
+                styles.scrollContent,
+                { paddingBottom: Math.max(insets.bottom, spacing.md) },
+              ]}
+            >
+              {phase === 'menu' && (
+                <>
+                  <View style={styles.heading}>
+                    <Text style={[styles.headingTitle, { fontFamily: fonts.bold, color: theme.text }]}>
+                      {strings.menu_settings}
+                    </Text>
+                    <CircleButton icon="close" onPress={onClose} label="Close menu" theme={theme} />
+                  </View>
+
+                  <View style={styles.rowGroup}>
+                    <MenuRow label={strings.menu_acknowledgements}     icon="menu-book"          onPress={() => navigate('acknowledgements', 'push')} theme={theme} />
+                    <MenuRow label={strings.menu_location_permissions} iconSymbol="location.fill" onPress={handleLocationPermissions} theme={theme} />
+                    <MenuRow label={strings.menu_support}              icon="favorite"            onPress={() => navigate('tip-jar', 'push')} theme={theme} />
+                    <MenuRow label={strings.menu_write_review}         icon="star"                onPress={handleReview} theme={theme} />
+                  </View>
+
+                  <Text style={[styles.footer, { color: theme.secondary }]}>{versionLabel}</Text>
+                </>
+              )}
+
+              {phase === 'tip-jar' && (
+                <TipJarContent onBack={() => navigate('menu', 'pop')} theme={theme} />
+              )}
+            </ScrollView>
+          </Animated.View>
         )}
       </Animated.View>
     </>
@@ -388,7 +644,151 @@ const styles = StyleSheet.create({
     backgroundColor: color.scrim,
     zIndex: zIndex.backdrop,
   },
+
+  // ── iOS sheet ──────────────────────────────────────────────────────────────
   sheet: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    marginHorizontal: spacing.sm,  // 12pt
+    marginBottom: spacing.md,      // 16pt
+    borderRadius: radius.sheet,    // 28pt all corners
+    maxHeight: ACK_HEIGHT,
+    zIndex: zIndex.sheet,
+  },
+  dragHandleArea: {
+    paddingTop: spacing.sm,   // 12pt
+    paddingBottom: spacing.xs,
+    alignItems: 'center',
+  },
+  dragHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(120,120,128,0.4)',
+  },
+  scrollContent: {
+    paddingHorizontal: spacing.sm,  // 12pt
+    paddingTop: spacing.xs,
+    gap: spacing.xl,
+  },
+  heading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: spacing.xs,
+  },
+  headingTitle: {
+    fontSize: fontSize.lg,   // 18pt
+  },
+  rowGroup: {
+    gap: spacing.xs,         // 8pt between rows
+  },
+  rowCard: {
+    borderRadius: radius.row,  // 16pt
+    overflow: 'hidden',
+  },
+  rowInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.md,  // 16pt
+    paddingVertical: 14,            // 14pt per spec
+  },
+  rowLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,    // 12pt icon→label
+    flex: 1,
+  },
+  rowLabel: {
+    fontSize: fontSize.base,  // 16pt
+  },
+  circleBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  phaseHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.xs,
+  },
+  phaseTitle: {
+    fontSize: fontSize.lg,  // 18pt
+    flex: 1,
+  },
+  sectionHeader: {
+    fontSize: fontSize.caption,   // 12pt
+    fontFamily: undefined,        // set inline
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    paddingHorizontal: spacing.xxs,
+    paddingBottom: spacing.xxs,
+  },
+  ackSection: {
+    gap: spacing.xxs,
+  },
+  ackCard: {
+    borderRadius: radius.row,
+    overflow: 'hidden',
+  },
+  ackScrollContent: {
+    gap: spacing.md,
+    paddingBottom: spacing.md,
+  },
+  ackLayout: {
+    flex: 1,
+    paddingHorizontal: spacing.sm,
+    paddingTop: spacing.xs,
+    gap: spacing.xs,
+  },
+  ackName: {
+    fontSize: fontSize.base,
+  },
+  hairline: {
+    height: StyleSheet.hairlineWidth,
+    marginHorizontal: spacing.md,
+  },
+  tierEmoji: {
+    fontSize: 20,
+  },
+  tierLabel: {
+    fontSize: fontSize.base,   // 16pt Bold
+  },
+  tierDesc: {
+    fontSize: fontSize.caption,  // 12pt Regular
+  },
+  tierPrice: {
+    fontSize: fontSize.base,   // 16pt Black
+  },
+  tipSubtitle: {
+    fontSize: fontSize.sm,
+    textAlign: 'center',
+    paddingHorizontal: spacing.xs,
+  },
+  tipThankYou: {
+    fontSize: fontSize.xxl,
+    textAlign: 'center',
+    paddingVertical: spacing.xl,
+  },
+  tipUnavailable: {
+    fontSize: fontSize.md,
+    textAlign: 'center',
+    marginTop: spacing.md,
+  },
+  footer: {
+    fontSize: fontSize.caption,  // 12pt
+    textAlign: 'center',
+    paddingVertical: spacing.xs,
+  },
+
+  // ── Android (original style, preserved) ───────────────────────────────────
+  androidSheet: {
     position: 'absolute',
     bottom: 0,
     left: 0,
@@ -399,125 +799,49 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     zIndex: zIndex.sheet,
   },
-  ackLayout: {
+  androidScrollContent: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.xl,
+    gap: spacing.xl,
+  },
+  androidAckLayout: {
     flex: 1,
     paddingHorizontal: spacing.md,
     paddingTop: spacing.xl,
     gap: spacing.xl,
   },
-  ackCard: {
-    flex: 1,
-    overflow: 'hidden',
-  },
-  scrollContent: {
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.xl,
-    gap: spacing.xl,
-  },
-  heading: {
+  androidHeading: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  headingTitle: {
-    flex: 1,
-    fontSize: fontSize.xxxl,
-    color: color.black,
-  },
-  card: {
+  androidCard: {
     backgroundColor: color.surfaceCard,
     borderRadius: radius.xl,
     padding: spacing.xl,
   },
-  menuRow: {
+  androidRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  menuRowLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  menuRowLabel: {
-    fontSize: fontSize.base,
-    color: color.black,
-  },
-  divider: {
+  androidDivider: {
     height: StyleSheet.hairlineWidth,
     backgroundColor: color.divider,
     marginVertical: spacing.md,
   },
-  phaseHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  iconButton: {
-    width: size.iconBtn,
-    height: size.iconBtn,
-    borderRadius: radius.md,
-    backgroundColor: color.surfaceCard,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  phaseTitle: {
-    flex: 1,
-    fontSize: fontSize.lg,
-    color: color.black,
-    textAlign: 'center',
-    paddingHorizontal: spacing.xs,
-  },
-  phaseSubtitle: {
-    fontSize: fontSize.sm,
-    color: color.textMuted,
-    textAlign: 'center',
-    paddingHorizontal: spacing.xs,
-    paddingBottom: spacing.xs,
-  },
-  ackRow: {
+  androidAckRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: spacing.xxs,
   },
-  ackName: {
-    fontSize: fontSize.base,
-    color: color.black,
-  },
-  dataSource: {
-    fontSize: fontSize.xs,
-    color: color.textFaint,
-    textAlign: 'center',
-    paddingTop: spacing.md,
-  },
-  tipCard: {
+  androidIconBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.md,
+    backgroundColor: color.surfaceCard,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.sm,
-    minHeight: 100,
-  },
-  tipButton: {
-    backgroundColor: color.brand,
-    borderRadius: radius.pill,
-    paddingHorizontal: spacing.xxxl,
-    paddingVertical: spacing.sm,
-    width: size.tipBtnWidth,
-    alignItems: 'center',
-  },
-  tipButtonText: {
-    color: color.white,
-    fontSize: fontSize.base,
-  },
-  tipThankYou: {
-    fontSize: fontSize.xxl,
-    color: color.textSuccess,
-    textAlign: 'center',
-  },
-  tipUnavailable: {
-    fontSize: fontSize.md,
-    color: color.textFaint,
-    textAlign: 'center',
-    marginTop: spacing.md,
   },
 });

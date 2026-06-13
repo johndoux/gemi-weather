@@ -14,17 +14,18 @@ export const spacing = {
 
 // ─── Typography ───────────────────────────────────────────────────────────────
 export const fontSize = {
-  xs:    11,
-  sm:    13,
-  md:    14,
-  base:  16,
-  lg:    18,
-  xl:    20,
-  xxl:   22,
-  xxxl:  24,
-  h2:    28,
-  temp:  68,
-  mark:  120,
+  xs:      11,
+  sm:      13,
+  md:      14,
+  base:    16,
+  lg:      18,
+  xl:      20,
+  xxl:     22,
+  xxxl:    24,
+  h2:      28,
+  temp:    68,
+  mark:    120,
+  caption: 12,  // section headers, footer
 } as const;
 
 // ─── Icon sizes ───────────────────────────────────────────────────────────────
@@ -38,11 +39,13 @@ export const iconSize = {
 
 // ─── Border radius ────────────────────────────────────────────────────────────
 export const radius = {
-  sm:   14,
-  md:   20,
-  lg:   24,
-  xl:   32,
-  pill: 999,
+  sm:    14,
+  md:    20,
+  lg:    24,
+  xl:    32,
+  pill:  999,
+  sheet: 28,  // bottom sheet corner radius
+  row:   16,  // individual menu row corner radius
 } as const;
 
 // ─── Sizing ───────────────────────────────────────────────────────────────────
