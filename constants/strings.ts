@@ -41,17 +41,15 @@ export const strings = {
   clothing_frozen:    'Full winter gear!',
 
   // ── Menu ─────────────────────────────────────────────────────────────────
-  menu_settings:             'Settings',
+  menu_settings:             'Menu',
   menu_acknowledgements:     'Acknowledgements',
   menu_location_permissions: 'Location Permissions',
   menu_write_review:         'Write a Review',
   menu_support:              'Support this App',
 
   // ── Tip jar ──────────────────────────────────────────────────────────────
-  tip_subtitle:    'Supporting a dad making an app to help his kid wear a jacket when it is cold outside!',
+  tip_subtitle:    'Gemi is made with love. If it brings a smile to your little one, consider buying us a treat!',
   tip_unavailable: 'Tips are not available right now.',
-  tip_thank_you:   'Thank you so much!',
-
-  // ── Acknowledgements ─────────────────────────────────────────────────────
-  ack_data_source: 'Weather data provided by Open-Meteo (open-meteo.com)',
+  tip_thank_you:   'Thank you so much! 🎉',
+  tip_footer:      'Purchases handled securely via the App Store.',
 } as const;
