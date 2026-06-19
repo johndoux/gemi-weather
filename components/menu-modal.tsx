@@ -487,7 +487,7 @@ export function MenuModal({ visible, onClose, isDay }: MenuModalProps) {
           style={[styles.backdrop, backdropStyle]}
           pointerEvents={active ? 'box-none' : 'none'}
         >
-          <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
+          <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
         </Animated.View>
 
         <Animated.View
@@ -576,7 +576,7 @@ export function MenuModal({ visible, onClose, isDay }: MenuModalProps) {
         style={[styles.backdrop, backdropStyle]}
         pointerEvents={active ? 'box-none' : 'none'}
       >
-        <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
       </Animated.View>
 
       <Animated.View
@@ -644,7 +644,7 @@ export function MenuModal({ visible, onClose, isDay }: MenuModalProps) {
 
 const styles = StyleSheet.create({
   backdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: color.scrim,
     zIndex: zIndex.backdrop,
   },
