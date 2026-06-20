@@ -10,4 +10,4 @@ export const fonts = {
   black:    'Nunito_900Black',
 };
 
-export { color, duration, fontSize, iconSize, radius, shadow, size, spacing, zIndex } from './tokens';
+export { color, duration, fontSize, iconSize, inputColors, radius, size, spacing, zIndex } from './tokens';

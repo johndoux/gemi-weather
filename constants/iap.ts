@@ -4,8 +4,6 @@ export const TIP_TIERS = [
   { id: 'tip.large',  emoji: '🎉', label: 'Big love',     desc: 'Celebrate with Gemi' },
 ] as const;
 
-export type TipTier = typeof TIP_TIERS[number];
-
 // Product IDs derived from TIP_TIERS so there's a single source of truth.
 export const TIP_PRODUCT_IDS = TIP_TIERS.map(t => t.id) as [
   'tip.small',

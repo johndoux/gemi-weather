@@ -22,7 +22,6 @@ export interface ColorPalette {
   text: string;
   textMuted: string;
   iconColor: string;
-  cardBorder: string;
 }
 
 export interface WeatherVerdict {
@@ -33,22 +32,24 @@ export interface WeatherVerdict {
   clothingText: string;
 }
 
+export const DEFAULT_PALETTE: ColorPalette = { background: '#e0f2fe', gradientColors: ['rgba(255,255,255,0.95)', 'rgba(224,242,254,0.50)', 'rgba(191,219,254,0.50)'], text: '#0c4a6e', textMuted: '#0369a1', iconColor: '#38bdf8' };
+
 const DAY_PALETTES: Record<VerdictKey, ColorPalette> = {
-  scorching: { background: '#fef2f2', gradientColors: ['rgba(255,255,255,0.95)', 'rgba(254,226,226,0.50)', 'rgba(254,215,170,0.50)'], text: '#7f1d1d', textMuted: '#dc2626', iconColor: '#ef4444', cardBorder: 'rgba(255,255,255,0.40)' },
-  warm:      { background: '#fff7ed', gradientColors: ['rgba(255,255,255,0.95)', 'rgba(255,237,213,0.50)', 'rgba(254,215,170,0.50)'], text: '#7c2d12', textMuted: '#ea580c', iconColor: '#fbbf24', cardBorder: 'rgba(255,255,255,0.40)' },
-  mild:      { background: '#f0fdf4', gradientColors: ['rgba(255,255,255,0.95)', 'rgba(220,252,231,0.50)', 'rgba(209,250,229,0.50)'], text: '#14532d', textMuted: '#15803d', iconColor: '#22c55e', cardBorder: 'rgba(255,255,255,0.40)' },
-  cool:      { background: '#e0f2fe', gradientColors: ['rgba(255,255,255,0.95)', 'rgba(224,242,254,0.50)', 'rgba(191,219,254,0.50)'], text: '#0c4a6e', textMuted: '#0369a1', iconColor: '#38bdf8', cardBorder: 'rgba(255,255,255,0.40)' },
-  cold:      { background: '#eef2ff', gradientColors: ['rgba(255,255,255,0.95)', 'rgba(224,231,255,0.50)', 'rgba(233,213,255,0.50)'], text: '#312e81', textMuted: '#4f46e5', iconColor: '#818cf8', cardBorder: 'rgba(255,255,255,0.40)' },
-  frozen:    { background: '#f1f5f9', gradientColors: ['rgba(255,255,255,0.95)', 'rgba(226,232,240,0.50)', 'rgba(224,242,254,0.50)'], text: '#1e293b', textMuted: '#475569', iconColor: '#7dd3fc', cardBorder: 'rgba(255,255,255,0.40)' },
+  scorching: { background: '#fef2f2', gradientColors: ['rgba(255,255,255,0.95)', 'rgba(254,226,226,0.50)', 'rgba(254,215,170,0.50)'], text: '#7f1d1d', textMuted: '#dc2626', iconColor: '#ef4444' },
+  warm:      { background: '#fff7ed', gradientColors: ['rgba(255,255,255,0.95)', 'rgba(255,237,213,0.50)', 'rgba(254,215,170,0.50)'], text: '#7c2d12', textMuted: '#ea580c', iconColor: '#fbbf24' },
+  mild:      { background: '#f0fdf4', gradientColors: ['rgba(255,255,255,0.95)', 'rgba(220,252,231,0.50)', 'rgba(209,250,229,0.50)'], text: '#14532d', textMuted: '#15803d', iconColor: '#22c55e' },
+  cool:      { background: '#e0f2fe', gradientColors: ['rgba(255,255,255,0.95)', 'rgba(224,242,254,0.50)', 'rgba(191,219,254,0.50)'], text: '#0c4a6e', textMuted: '#0369a1', iconColor: '#38bdf8' },
+  cold:      { background: '#eef2ff', gradientColors: ['rgba(255,255,255,0.95)', 'rgba(224,231,255,0.50)', 'rgba(233,213,255,0.50)'], text: '#312e81', textMuted: '#4f46e5', iconColor: '#818cf8' },
+  frozen:    { background: '#f1f5f9', gradientColors: ['rgba(255,255,255,0.95)', 'rgba(226,232,240,0.50)', 'rgba(224,242,254,0.50)'], text: '#1e293b', textMuted: '#475569', iconColor: '#7dd3fc' },
 };
 
 const NIGHT_PALETTES: Record<VerdictKey, ColorPalette> = {
-  scorching: { background: '#1e1b4b', gradientColors: ['rgba(74,29,150,0.80)',  'rgba(74,29,150,0.60)',  'rgba(30,27,75,0.60)'],  text: '#ffe4e6', textMuted: '#fda4af', iconColor: '#fb7185', cardBorder: 'rgba(55,48,163,0.50)'  },
-  warm:      { background: '#0f172a', gradientColors: ['rgba(49,46,129,0.80)',  'rgba(49,46,129,0.60)',  'rgba(15,23,42,0.60)'],  text: '#e0e7ff', textMuted: '#a5b4fc', iconColor: '#818cf8', cardBorder: 'rgba(51,65,85,0.50)'   },
-  mild:      { background: '#020617', gradientColors: ['rgba(19,78,74,0.80)',   'rgba(19,78,74,0.40)',   'rgba(15,23,42,0.50)'],  text: '#ecfdf5', textMuted: 'rgba(167,243,208,0.70)', iconColor: '#34d399', cardBorder: 'rgba(30,41,59,0.60)'   },
-  cool:      { background: '#111827', gradientColors: ['rgba(12,74,110,0.80)',  'rgba(12,74,110,0.40)',  'rgba(17,24,39,0.50)'],  text: '#f0f9ff', textMuted: 'rgba(186,230,253,0.70)', iconColor: '#38bdf8', cardBorder: 'rgba(55,65,81,0.50)'   },
-  cold:      { background: '#020617', gradientColors: ['rgba(30,27,75,0.80)',   'rgba(30,27,75,0.60)',   'rgba(2,6,23,0.80)'],    text: '#eef2ff', textMuted: 'rgba(199,210,254,0.70)', iconColor: '#818cf8', cardBorder: 'rgba(30,41,59,0.50)'   },
-  frozen:    { background: '#09090b', gradientColors: ['rgba(12,74,110,0.80)',  'rgba(12,74,110,0.30)',  'rgba(9,9,11,0.80)'],    text: '#fafafa', textMuted: 'rgba(212,212,216,0.70)', iconColor: '#7dd3fc', cardBorder: 'rgba(39,39,42,0.50)'   },
+  scorching: { background: '#1e1b4b', gradientColors: ['rgba(74,29,150,0.80)',  'rgba(74,29,150,0.60)',  'rgba(30,27,75,0.60)'],  text: '#ffe4e6', textMuted: '#fda4af', iconColor: '#fb7185'  },
+  warm:      { background: '#0f172a', gradientColors: ['rgba(49,46,129,0.80)',  'rgba(49,46,129,0.60)',  'rgba(15,23,42,0.60)'],  text: '#e0e7ff', textMuted: '#a5b4fc', iconColor: '#818cf8'   },
+  mild:      { background: '#020617', gradientColors: ['rgba(19,78,74,0.80)',   'rgba(19,78,74,0.40)',   'rgba(15,23,42,0.50)'],  text: '#ecfdf5', textMuted: 'rgba(167,243,208,0.70)', iconColor: '#34d399'   },
+  cool:      { background: '#111827', gradientColors: ['rgba(12,74,110,0.80)',  'rgba(12,74,110,0.40)',  'rgba(17,24,39,0.50)'],  text: '#f0f9ff', textMuted: 'rgba(186,230,253,0.70)', iconColor: '#38bdf8'   },
+  cold:      { background: '#020617', gradientColors: ['rgba(30,27,75,0.80)',   'rgba(30,27,75,0.60)',   'rgba(2,6,23,0.80)'],    text: '#eef2ff', textMuted: 'rgba(199,210,254,0.70)', iconColor: '#818cf8'   },
+  frozen:    { background: '#09090b', gradientColors: ['rgba(12,74,110,0.80)',  'rgba(12,74,110,0.30)',  'rgba(9,9,11,0.80)'],    text: '#fafafa', textMuted: 'rgba(212,212,216,0.70)', iconColor: '#7dd3fc'   },
 };
 
 const CONDITION_TEXT: Record<ConditionKey, string> = {

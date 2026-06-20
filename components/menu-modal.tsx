@@ -1,4 +1,4 @@
-import type { ProductIOS } from 'expo-iap';
+import type { ProductIOS, Purchase } from 'expo-iap';
 import { ACK_SECTIONS } from '@/constants/acknowledgements';
 import { TIP_TIERS, TIP_PRODUCT_IDS } from '@/constants/iap';
 import { strings } from '@/constants/strings';
@@ -44,6 +44,7 @@ interface MenuModalProps {
   visible: boolean;
   onClose: () => void;
   isDay: boolean;
+  iconColor?: string;
 }
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -86,11 +87,12 @@ type Theme = ReturnType<typeof buildTheme>;
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
-function CircleButton({ icon, onPress, label, theme }: {
+function CircleButton({ icon, onPress, label, theme, iconColor }: {
   icon: ComponentProps<typeof MaterialIcons>['name'];
   onPress: () => void;
   label: string;
   theme: Theme;
+  iconColor: string;
 }) {
   return (
     <Pressable
@@ -100,30 +102,32 @@ function CircleButton({ icon, onPress, label, theme }: {
       accessibilityRole="button"
       accessibilityLabel={label}
     >
-      <MaterialIcons name={icon} size={iconSize.sm} color={theme.text} />
+      <MaterialIcons name={icon} size={iconSize.sm} color={iconColor} />
     </Pressable>
   );
 }
 
-function PhaseHeader({ title, onBack, theme }: {
+function PhaseHeader({ title, onBack, theme, iconColor }: {
   title: string;
   onBack: () => void;
   theme: Theme;
+  iconColor: string;
 }) {
   return (
     <View style={styles.phaseHeader}>
-      <CircleButton icon="arrow-back" onPress={onBack} label="Go back" theme={theme} />
+      <CircleButton icon="arrow-back" onPress={onBack} label="Go back" theme={theme} iconColor={iconColor} />
       <Text style={[styles.phaseTitle, { fontFamily: fonts.bold, color: theme.text }]}>{title}</Text>
     </View>
   );
 }
 
-function MenuRow({ label, onPress, icon, iconSymbol, theme }: {
+function MenuRow({ label, onPress, icon, iconSymbol, theme, iconColor }: {
   label: string;
   onPress: () => void;
   icon?: ComponentProps<typeof MaterialIcons>['name'];
   iconSymbol?: ComponentProps<typeof IconSymbol>['name'];
   theme: Theme;
+  iconColor: string;
 }) {
   const scale      = useSharedValue(1);
   const scaleStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
@@ -163,8 +167,8 @@ function MenuRow({ label, onPress, icon, iconSymbol, theme }: {
       >
         <View style={styles.rowLeft}>
           {iconSymbol
-            ? <IconSymbol name={iconSymbol} size={iconSize.sm} color={theme.secondary} />
-            : <MaterialIcons name={icon!} size={iconSize.sm} color={theme.secondary} />
+            ? <IconSymbol name={iconSymbol} size={iconSize.sm} color={iconColor} />
+            : <MaterialIcons name={icon!} size={iconSize.sm} color={iconColor} />
           }
           <Text style={[styles.rowLabel, { fontFamily: fonts.semibold, color: theme.text }]}>{label}</Text>
         </View>
@@ -218,10 +222,14 @@ function TierRow({ tier, displayPrice, onPurchase, index, theme }: {
   );
 }
 
-function TipJarContent({ onBack, theme }: { onBack: () => void; theme: Theme }) {
+function TipJarContent({ onBack, theme, iconColor }: { onBack: () => void; theme: Theme; iconColor: string }) {
   const [products, setProducts] = useState<ProductIOS[]>([]);
   const [loading,  setLoading]  = useState(true);
   const [thankYou, setThankYou] = useState(false);
+  // Tracks the product id the user just tapped this session, so we only show
+  // "Thank you" for purchases the user actually initiated here — not for
+  // stale/pending transactions that initConnection() may redeliver.
+  const pendingPurchaseIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!IAPModule) { setLoading(false); return; }
@@ -240,37 +248,52 @@ function TipJarContent({ onBack, theme }: { onBack: () => void; theme: Theme }) 
       setLoading(false);
     }
 
-    const sub = IAPModule.purchaseUpdatedListener(async (purchase: any) => {
-      try {
-        await IAPModule!.finishTransaction({ purchase, isConsumable: true });
-        setThankYou(true);
-      } catch (e) {
-        if (__DEV__) console.warn('[TipJar] finishTransaction failed:', e);
-      }
-    });
+    // expo-iap can require() successfully but throw at call-time when native
+    // linking is incomplete (web, Expo Go, dev builds without IAP capabilities).
+    // Wrap the listener registration so a failure here doesn't crash the menu.
+    let sub: { remove: () => void } | undefined;
+    try {
+      sub = IAPModule.purchaseUpdatedListener(async (purchase: Purchase) => {
+        try {
+          await IAPModule!.finishTransaction({ purchase, isConsumable: true });
+          if (purchase.productId === pendingPurchaseIdRef.current) {
+            setThankYou(true);
+          }
+        } catch (e) {
+          if (__DEV__) console.warn('[TipJar] finishTransaction failed:', e);
+        } finally {
+          pendingPurchaseIdRef.current = null;
+        }
+      });
+    } catch (e) {
+      if (__DEV__) console.warn('[TipJar] purchaseUpdatedListener failed:', e);
+      setLoading(false);
+    }
 
     load();
     return () => {
-      sub.remove();
+      sub?.remove();
       IAPModule?.endConnection?.();
     };
   }, []);
 
   async function purchase(id: string) {
     if (!IAPModule) return;
+    pendingPurchaseIdRef.current = id;
     try {
       await IAPModule.requestPurchase({
         type: 'in-app',
         request: { apple: { sku: id }, google: { skus: [id] } },
       });
     } catch (e) {
+      pendingPurchaseIdRef.current = null;
       if (__DEV__) console.warn('[TipJar] requestPurchase failed:', e);
     }
   }
 
   return (
     <>
-      <PhaseHeader title={strings.menu_support} onBack={onBack} theme={theme} />
+      <PhaseHeader title={strings.menu_support} onBack={onBack} theme={theme} iconColor={iconColor} />
 
       {thankYou ? (
         <Text style={[styles.tipThankYou, { fontFamily: fonts.regular, color: theme.text }]}>
@@ -304,19 +327,16 @@ function TipJarContent({ onBack, theme }: { onBack: () => void; theme: Theme }) 
             </View>
           )}
 
-          {Platform.OS === 'ios' && (
-            <Text style={[styles.footer, { color: theme.secondary }]}>{strings.tip_footer}</Text>
-          )}
         </>
       )}
     </>
   );
 }
 
-function AckContent({ onBack, theme }: { onBack: () => void; theme: Theme }) {
+function AckContent({ onBack, theme, iconColor }: { onBack: () => void; theme: Theme; iconColor: string }) {
   return (
     <>
-      <PhaseHeader title={strings.menu_acknowledgements} onBack={onBack} theme={theme} />
+      <PhaseHeader title={strings.menu_acknowledgements} onBack={onBack} theme={theme} iconColor={iconColor} />
       <ScrollView
         bounces={false}
         showsVerticalScrollIndicator={false}
@@ -353,7 +373,7 @@ function AckContent({ onBack, theme }: { onBack: () => void; theme: Theme }) {
 
 // ─── Main modal ──────────────────────────────────────────────────────────────
 
-export function MenuModal({ visible, onClose, isDay }: MenuModalProps) {
+export function MenuModal({ visible, onClose, isDay, iconColor }: MenuModalProps) {
   const insets       = useSafeAreaInsets();
   const reduceMotion = useReducedMotion();
   const [phase,  setPhase]  = useState<Phase>('menu');
@@ -361,6 +381,7 @@ export function MenuModal({ visible, onClose, isDay }: MenuModalProps) {
 
   const isNight = !isDay && Platform.OS === 'ios';
   const theme   = useMemo(() => buildTheme(isNight), [isNight]);
+  const resolvedIconColor = iconColor ?? theme.secondary;
 
   // Version label built from native runtime values — never hardcoded
   const appVersion  = Constants.nativeAppVersion  ?? Constants.expoConfig?.version ?? '—';
@@ -490,7 +511,7 @@ export function MenuModal({ visible, onClose, isDay }: MenuModalProps) {
           style={[styles.backdrop, backdropStyle]}
           pointerEvents={active ? 'box-none' : 'none'}
         >
-          <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
+          <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
         </Animated.View>
 
         <Animated.View
@@ -504,6 +525,7 @@ export function MenuModal({ visible, onClose, isDay }: MenuModalProps) {
                 title={strings.menu_acknowledgements}
                 onBack={() => navigate('menu', 'pop')}
                 theme={theme}
+                iconColor={resolvedIconColor}
               />
               <View style={[styles.androidCard, { flex: 1, overflow: 'hidden' }]}>
                 <ScrollView bounces={false} showsVerticalScrollIndicator={false}>
@@ -551,18 +573,18 @@ export function MenuModal({ visible, onClose, isDay }: MenuModalProps) {
                     </Pressable>
                   </View>
                   <View style={styles.androidCard}>
-                    <MenuRow label={strings.menu_acknowledgements}     icon="menu-book"          onPress={() => navigate('acknowledgements', 'push')} theme={theme} />
+                    <MenuRow label={strings.menu_acknowledgements}     icon="menu-book"          onPress={() => navigate('acknowledgements', 'push')} theme={theme} iconColor={resolvedIconColor} />
                     <View style={styles.androidDivider} />
-                    <MenuRow label={strings.menu_location_permissions} iconSymbol="location.fill" onPress={handleLocationPermissions} theme={theme} />
+                    <MenuRow label={strings.menu_location_permissions} iconSymbol="location.fill" onPress={handleLocationPermissions} theme={theme} iconColor={resolvedIconColor} />
                     <View style={styles.androidDivider} />
-                    <MenuRow label={strings.menu_support}              icon="favorite"            onPress={() => navigate('tip-jar', 'push')} theme={theme} />
+                    <MenuRow label={strings.menu_support}              icon="favorite"            onPress={() => navigate('tip-jar', 'push')} theme={theme} iconColor={resolvedIconColor} />
                     <View style={styles.androidDivider} />
-                    <MenuRow label={strings.menu_write_review}         icon="star"                onPress={handleReview} theme={theme} />
+                    <MenuRow label={strings.menu_write_review}         icon="star"                onPress={handleReview} theme={theme} iconColor={resolvedIconColor} />
                   </View>
                 </>
               )}
               {phase === 'tip-jar' && (
-                <TipJarContent onBack={() => navigate('menu', 'pop')} theme={theme} />
+                <TipJarContent onBack={() => navigate('menu', 'pop')} theme={theme} iconColor={resolvedIconColor} />
               )}
             </ScrollView>
           )}
@@ -579,7 +601,7 @@ export function MenuModal({ visible, onClose, isDay }: MenuModalProps) {
         style={[styles.backdrop, backdropStyle]}
         pointerEvents={active ? 'box-none' : 'none'}
       >
-        <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
       </Animated.View>
 
       <Animated.View
@@ -601,7 +623,7 @@ export function MenuModal({ visible, onClose, isDay }: MenuModalProps) {
 
         {phase === 'acknowledgements' ? (
           <Animated.View style={[styles.ackLayout, slideXStyle, { paddingBottom: Math.max(insets.bottom, spacing.md) }]}>
-            <AckContent onBack={() => navigate('menu', 'pop')} theme={theme} />
+            <AckContent onBack={() => navigate('menu', 'pop')} theme={theme} iconColor={resolvedIconColor} />
           </Animated.View>
         ) : (
           <Animated.View style={[{ flex: 1 }, slideXStyle]}>
@@ -620,14 +642,14 @@ export function MenuModal({ visible, onClose, isDay }: MenuModalProps) {
                     <Text style={[styles.headingTitle, { fontFamily: fonts.bold, color: theme.text }]}>
                       {strings.menu_settings}
                     </Text>
-                    <CircleButton icon="close" onPress={onClose} label="Close menu" theme={theme} />
+                    <CircleButton icon="close" onPress={onClose} label="Close menu" theme={theme} iconColor={resolvedIconColor} />
                   </View>
 
                   <View style={styles.rowGroup}>
-                    <MenuRow label={strings.menu_acknowledgements}     icon="menu-book"          onPress={() => navigate('acknowledgements', 'push')} theme={theme} />
-                    <MenuRow label={strings.menu_location_permissions} iconSymbol="location.fill" onPress={handleLocationPermissions} theme={theme} />
-                    <MenuRow label={strings.menu_support}              icon="favorite"            onPress={() => navigate('tip-jar', 'push')} theme={theme} />
-                    <MenuRow label={strings.menu_write_review}         icon="star"                onPress={handleReview} theme={theme} />
+                    <MenuRow label={strings.menu_acknowledgements}     icon="menu-book"          onPress={() => navigate('acknowledgements', 'push')} theme={theme} iconColor={resolvedIconColor} />
+                    <MenuRow label={strings.menu_location_permissions} iconSymbol="location.fill" onPress={handleLocationPermissions} theme={theme} iconColor={resolvedIconColor} />
+                    <MenuRow label={strings.menu_support}              icon="favorite"            onPress={() => navigate('tip-jar', 'push')} theme={theme} iconColor={resolvedIconColor} />
+                    <MenuRow label={strings.menu_write_review}         icon="star"                onPress={handleReview} theme={theme} iconColor={resolvedIconColor} />
                   </View>
 
                   <Text style={[styles.footer, { color: theme.secondary }]}>{versionLabel}</Text>
@@ -635,7 +657,7 @@ export function MenuModal({ visible, onClose, isDay }: MenuModalProps) {
               )}
 
               {phase === 'tip-jar' && (
-                <TipJarContent onBack={() => navigate('menu', 'pop')} theme={theme} />
+                <TipJarContent onBack={() => navigate('menu', 'pop')} theme={theme} iconColor={resolvedIconColor} />
               )}
             </ScrollView>
           </Animated.View>
@@ -647,7 +669,7 @@ export function MenuModal({ visible, onClose, isDay }: MenuModalProps) {
 
 const styles = StyleSheet.create({
   backdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: color.scrim,
     zIndex: zIndex.backdrop,
   },

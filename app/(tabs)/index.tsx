@@ -3,9 +3,10 @@ import { LoadingScreen } from '@/components/loading-screen';
 import { LocationInputScreen } from '@/components/location-input-screen';
 import { MenuModal } from '@/components/menu-modal';
 import { MonsterCharacter } from '@/components/monster-character';
+import { CornerButtonBg } from '@/components/ui/corner-button-bg';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useWeatherContext } from '@/contexts/weather-context';
-import { color, fonts, fontSize, iconSize, radius, shadow, size, spacing, zIndex } from '@/constants/theme';
+import { fonts, fontSize, iconSize, size, spacing, zIndex } from '@/constants/theme';
 import { getWeatherVerdict, WEATHER_ICONS } from '@/constants/weather';
 import { MapPin } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
@@ -13,7 +14,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useRef, useState } from 'react';
-import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 
@@ -41,7 +42,7 @@ export default function HomeScreen() {
   if (weather.status === 'needs-location') {
     return (
       <LocationInputScreen
-        setManualLocation={weather.setManualLocation}
+        selectPlace={weather.selectPlace}
         isResolving={weather.isResolving}
         error={weather.locationError}
         canAskAgain={weather.canAskAgain}
@@ -55,22 +56,24 @@ export default function HomeScreen() {
   const topOffset = insets.top + spacing.xs;
 
   return (
-    <View style={[styles.screen, { backgroundColor: palette.background }]}>
+    <LinearGradient colors={palette.gradientColors} style={[styles.screen, { backgroundColor: palette.background }]}>
       <StatusBar style={weather.isDay ? 'dark' : 'light'} />
 
       <Pressable
-        style={[styles.cornerBtn, { top: topOffset, left: spacing.lg }]}
+        style={[styles.cornerBtnPos, { top: topOffset, left: spacing.lg }]}
         onPress={() => router.push('/location')}
         hitSlop={spacing.xs}
         accessibilityRole="button"
         accessibilityLabel="Change location"
       >
-        <IconSymbol name="mappin.and.ellipse" size={iconSize.md} color={palette.textMuted} />
+        <CornerButtonBg isDay={weather.isDay}>
+          <IconSymbol name="mappin.and.ellipse" size={iconSize.md} color={palette.textMuted} />
+        </CornerButtonBg>
       </Pressable>
 
       {weather.canUseGPS && (
         <Pressable
-          style={[styles.cornerBtn, { top: topOffset, right: spacing.lg }]}
+          style={[styles.cornerBtnPos, { top: topOffset, right: spacing.lg }]}
           onPress={weather.refreshGPSLocation}
           hitSlop={spacing.xs}
           disabled={weather.isGPSRefreshing}
@@ -78,10 +81,12 @@ export default function HomeScreen() {
           accessibilityLabel="Use my current location"
           accessibilityState={{ disabled: weather.isGPSRefreshing }}
         >
-          {weather.isGPSRefreshing
-            ? <ActivityIndicator color={palette.textMuted} size="small" />
-            : <IconSymbol name="location.fill" size={iconSize.md} color={palette.textMuted} />
-          }
+          <CornerButtonBg isDay={weather.isDay}>
+            {weather.isGPSRefreshing
+              ? <ActivityIndicator color={palette.textMuted} size="small" />
+              : <IconSymbol name="location.fill" size={iconSize.md} color={palette.textMuted} />
+            }
+          </CornerButtonBg>
         </Pressable>
       )}
 
@@ -92,9 +97,7 @@ export default function HomeScreen() {
         accessibilityLabel={`${Math.round(weather.apparentTempF)} degrees, ${verdict.conditionText}, ${verdict.clothingText}, in ${weather.cityName}`}
         accessibilityHint="Refreshes the weather"
       >
-        <View style={[styles.shadowOuter, Platform.OS === 'android' && { backgroundColor: palette.background }]}>
-          <View style={styles.shadowInner}>
-            <LinearGradient colors={palette.gradientColors} style={[styles.card, { height: cardMaxHeight }]}>
+        <View style={[styles.content, { height: cardMaxHeight }]}>
               <View style={styles.cityRow} accessible={false}>
                 <MapPin size={iconSize.sm} color={palette.textMuted} accessible={false} />
                 <Text
@@ -132,23 +135,23 @@ export default function HomeScreen() {
                   onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
                 />
               </View>
-            </LinearGradient>
-          </View>
         </View>
       </Pressable>
 
       <Pressable
-        style={[styles.cornerBtn, { bottom: insets.bottom + spacing.xs, right: spacing.lg }]}
+        style={[styles.cornerBtnPos, { bottom: insets.bottom + spacing.xs, right: spacing.lg }]}
         onPress={() => setMenuVisible(true)}
         hitSlop={spacing.xs}
         accessibilityRole="button"
         accessibilityLabel="Open settings menu"
       >
-        <IconSymbol name="ellipsis" size={iconSize.md} color={palette.textMuted} />
+        <CornerButtonBg isDay={weather.isDay}>
+          <IconSymbol name="ellipsis" size={iconSize.md} color={palette.textMuted} />
+        </CornerButtonBg>
       </Pressable>
 
-      <MenuModal visible={menuVisible} onClose={() => setMenuVisible(false)} isDay={weather.isDay} />
-    </View>
+      <MenuModal visible={menuVisible} onClose={() => setMenuVisible(false)} isDay={weather.isDay} iconColor={palette.textMuted} />
+    </LinearGradient>
   );
 }
 
@@ -156,14 +159,8 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
   },
-  cornerBtn: {
+  cornerBtnPos: {
     position: 'absolute',
-    width: size.iconBtn,
-    height: size.iconBtn,
-    borderRadius: radius.md,
-    backgroundColor: color.btnOverlay,
-    alignItems: 'center',
-    justifyContent: 'center',
     zIndex: zIndex.cornerBtn,
   },
   cardWrapper: {
@@ -171,19 +168,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     justifyContent: 'center',
   },
-  shadowOuter: {
-    borderRadius: radius.lg,
-    ...shadow.outer,
-  },
-  shadowInner: {
-    borderRadius: radius.lg,
-    ...shadow.inner,
-  },
-  card: {
-    borderRadius: radius.lg,
+  content: {
     paddingTop: spacing.xxl,
     paddingBottom: spacing.huge,
-    overflow: 'hidden',
   },
   cityRow: {
     flexDirection: 'row',

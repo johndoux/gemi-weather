@@ -25,7 +25,7 @@ const baseWeatherOk = {
   manualLocationError: undefined,
   refresh: jest.fn(),
   refreshGPSLocation: jest.fn(),
-  setManualLocation: jest.fn(),
+  selectPlace: jest.fn(),
 };
 
 const spriteConfig = {
@@ -68,7 +68,7 @@ describe('LoadingScreen accessibility', () => {
 // ─── LocationInputScreen ──────────────────────────────────────────────────────
 describe('LocationInputScreen accessibility', () => {
   const defaultProps = {
-    setManualLocation: jest.fn(),
+    selectPlace: jest.fn(),
     isResolving: false,
     canAskAgain: true,
   };
@@ -81,6 +81,12 @@ describe('LocationInputScreen accessibility', () => {
   it('submit button has correct role and label', () => {
     const { getByRole } = render(<LocationInputScreen {...defaultProps} />);
     expect(getByRole('button', { name: /get the weather/i })).toBeTruthy();
+  });
+
+  it('submit button is disabled when input is empty', () => {
+    const { getByRole } = render(<LocationInputScreen {...defaultProps} />);
+    const btn = getByRole('button', { name: /get the weather/i });
+    expect(btn.props.accessibilityState?.disabled).toBe(true);
   });
 
   it('submit button is disabled when resolving', () => {

@@ -1,3 +1,6 @@
+// ── Worklets ─────────────────────────────────────────────────────────────────
+jest.mock('react-native-worklets', () => require('react-native-worklets/lib/module/mock'));
+
 // ── Reanimated ───────────────────────────────────────────────────────────────
 jest.mock('react-native-reanimated', () => {
   const Reanimated = require('react-native-reanimated/mock');
