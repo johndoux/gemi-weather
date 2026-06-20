@@ -7,8 +7,9 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { TriangleAlert } from 'lucide-react-native';
-import React, { ComponentProps, useState } from 'react';
+import React, { ComponentProps, useEffect, useState } from 'react';
 import {
+  AccessibilityInfo,
   ActivityIndicator,
   FlatList,
   KeyboardAvoidingView,
@@ -28,7 +29,6 @@ interface LocationInputScreenProps {
   palette?: ColorPalette;
   isDay?: boolean;
   onDismiss?: () => void;
-  setManualLocation: (text: string) => void;
   selectPlace: (place: GeoResult) => void;
   isResolving: boolean;
   error?: string;
@@ -49,6 +49,19 @@ export function LocationInputScreen({
   const [text, setText] = useState('');
   const insets = useSafeAreaInsets();
   const placeSearch = usePlaceSearch();
+
+  // Announce search state transitions for screen readers — the FlatList of
+  // results otherwise gives no audible feedback that it appeared.
+  useEffect(() => {
+    if (placeSearch.status === 'loading') {
+      AccessibilityInfo.announceForAccessibility(strings.search_loading);
+    } else if (placeSearch.status === 'ready') {
+      const n = placeSearch.results.length;
+      AccessibilityInfo.announceForAccessibility(`${n} location${n === 1 ? '' : 's'} found`);
+    } else if (placeSearch.status === 'empty') {
+      AccessibilityInfo.announceForAccessibility(strings.search_no_results);
+    }
+  }, [placeSearch.status, placeSearch.results.length]);
 
   const input        = isDay ? inputColors.day : inputColors.night;
   const trimmed      = text.trim();

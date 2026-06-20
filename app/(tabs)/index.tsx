@@ -42,7 +42,6 @@ export default function HomeScreen() {
   if (weather.status === 'needs-location') {
     return (
       <LocationInputScreen
-        setManualLocation={weather.setManualLocation}
         selectPlace={weather.selectPlace}
         isResolving={weather.isResolving}
         error={weather.locationError}

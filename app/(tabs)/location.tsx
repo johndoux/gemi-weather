@@ -64,7 +64,6 @@ export default function LocationScreen() {
           palette={palette}
           isDay={isDay}
           onDismiss={navigateBack}
-          setManualLocation={weather.setManualLocation}
           selectPlace={weather.selectPlace}
           isResolving={isResolving}
           error={error}

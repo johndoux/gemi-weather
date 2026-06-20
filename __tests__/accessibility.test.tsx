@@ -25,7 +25,6 @@ const baseWeatherOk = {
   manualLocationError: undefined,
   refresh: jest.fn(),
   refreshGPSLocation: jest.fn(),
-  setManualLocation: jest.fn(),
   selectPlace: jest.fn(),
 };
 
@@ -69,7 +68,6 @@ describe('LoadingScreen accessibility', () => {
 // ─── LocationInputScreen ──────────────────────────────────────────────────────
 describe('LocationInputScreen accessibility', () => {
   const defaultProps = {
-    setManualLocation: jest.fn(),
     selectPlace: jest.fn(),
     isResolving: false,
     canAskAgain: true,

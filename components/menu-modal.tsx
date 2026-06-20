@@ -1,4 +1,4 @@
-import type { ProductIOS } from 'expo-iap';
+import type { ProductIOS, Purchase } from 'expo-iap';
 import { ACK_SECTIONS } from '@/constants/acknowledgements';
 import { TIP_TIERS, TIP_PRODUCT_IDS } from '@/constants/iap';
 import { strings } from '@/constants/strings';
@@ -226,6 +226,10 @@ function TipJarContent({ onBack, theme, iconColor }: { onBack: () => void; theme
   const [products, setProducts] = useState<ProductIOS[]>([]);
   const [loading,  setLoading]  = useState(true);
   const [thankYou, setThankYou] = useState(false);
+  // Tracks the product id the user just tapped this session, so we only show
+  // "Thank you" for purchases the user actually initiated here — not for
+  // stale/pending transactions that initConnection() may redeliver.
+  const pendingPurchaseIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!IAPModule) { setLoading(false); return; }
@@ -244,30 +248,45 @@ function TipJarContent({ onBack, theme, iconColor }: { onBack: () => void; theme
       setLoading(false);
     }
 
-    const sub = IAPModule.purchaseUpdatedListener(async (purchase: any) => {
-      try {
-        await IAPModule!.finishTransaction({ purchase, isConsumable: true });
-        setThankYou(true);
-      } catch (e) {
-        if (__DEV__) console.warn('[TipJar] finishTransaction failed:', e);
-      }
-    });
+    // expo-iap can require() successfully but throw at call-time when native
+    // linking is incomplete (web, Expo Go, dev builds without IAP capabilities).
+    // Wrap the listener registration so a failure here doesn't crash the menu.
+    let sub: { remove: () => void } | undefined;
+    try {
+      sub = IAPModule.purchaseUpdatedListener(async (purchase: Purchase) => {
+        try {
+          await IAPModule!.finishTransaction({ purchase, isConsumable: true });
+          if (purchase.productId === pendingPurchaseIdRef.current) {
+            setThankYou(true);
+          }
+        } catch (e) {
+          if (__DEV__) console.warn('[TipJar] finishTransaction failed:', e);
+        } finally {
+          pendingPurchaseIdRef.current = null;
+        }
+      });
+    } catch (e) {
+      if (__DEV__) console.warn('[TipJar] purchaseUpdatedListener failed:', e);
+      setLoading(false);
+    }
 
     load();
     return () => {
-      sub.remove();
+      sub?.remove();
       IAPModule?.endConnection?.();
     };
   }, []);
 
   async function purchase(id: string) {
     if (!IAPModule) return;
+    pendingPurchaseIdRef.current = id;
     try {
       await IAPModule.requestPurchase({
         type: 'in-app',
         request: { apple: { sku: id }, google: { skus: [id] } },
       });
     } catch (e) {
+      pendingPurchaseIdRef.current = null;
       if (__DEV__) console.warn('[TipJar] requestPurchase failed:', e);
     }
   }

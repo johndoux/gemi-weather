@@ -16,7 +16,6 @@ export const strings = {
   // ── Errors ───────────────────────────────────────────────────────────────
   error_message:            'Something went wrong.',
   error_retry:              'Try again',
-  error_location_not_found: "Couldn't find that location — try a city name or zip code",
   error_connection:         'Check your connection and try again',
   error_permissions:        'Could not check location permissions.',
   error_gps:                'Could not get your location.',

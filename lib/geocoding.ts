@@ -56,7 +56,13 @@ export async function searchPlaces(
   }
 
   if (!res.ok) {
-    throw makeError('server', `HTTP ${res.status}`);
+    let reason: string | undefined;
+    try {
+      reason = ((await res.json()) as { reason?: string }).reason;
+    } catch {
+      // body wasn't JSON — fall back to status-only message
+    }
+    throw makeError('server', reason ?? `HTTP ${res.status}`);
   }
 
   const data = (await res.json()) as OpenMeteoResponse;

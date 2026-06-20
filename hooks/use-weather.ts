@@ -39,7 +39,6 @@ type WeatherState =
 export type UseWeatherReturn = WeatherState & {
   refresh: () => Promise<void>;
   refreshGPSLocation: () => Promise<void>;
-  setManualLocation: (text: string) => Promise<void>;
   selectPlace: (place: GeoResult) => Promise<void>;
 };
 
@@ -210,32 +209,6 @@ export function useWeather(): UseWeatherReturn {
     });
   }, []);
 
-  const setManualLocation = useCallback(
-    async (text: string) => {
-      const trimmed = text.trim();
-      if (!trimmed) return;
-
-      const gen = ++locationGenRef.current;
-      markManualResolving();
-
-      try {
-        const results = await Location.geocodeAsync(trimmed);
-        if (locationGenRef.current !== gen) return;
-        if (!results || results.length === 0) {
-          setState(locationErrorUpdater(strings.error_location_not_found));
-          return;
-        }
-        const { latitude: lat, longitude: lon } = results[0];
-        await saveCache({ lat, lon, cityName: trimmed });
-        await fetchAndSetOk(lat, lon, trimmed, gen);
-      } catch {
-        if (locationGenRef.current !== gen) return;
-        setState(locationErrorUpdater(strings.error_connection));
-      }
-    },
-    [fetchAndSetOk, markManualResolving]
-  );
-
   const selectPlace = useCallback(
     async (place: GeoResult) => {
       const gen = ++locationGenRef.current;
@@ -350,5 +323,5 @@ export function useWeather(): UseWeatherReturn {
     };
   }, [fetchAndSetOk, refresh]);
 
-  return { ...state, refresh, refreshGPSLocation, setManualLocation, selectPlace } as UseWeatherReturn;
+  return { ...state, refresh, refreshGPSLocation, selectPlace } as UseWeatherReturn;
 }
