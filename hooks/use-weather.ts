@@ -1,4 +1,6 @@
 import { strings } from '@/constants/strings';
+import { GeoResult } from '@/lib/geocoding';
+import { toUsStateAbbrev } from '@/lib/us-states';
 import * as Location from 'expo-location';
 import * as SecureStore from 'expo-secure-store';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -38,6 +40,7 @@ export type UseWeatherReturn = WeatherState & {
   refresh: () => Promise<void>;
   refreshGPSLocation: () => Promise<void>;
   setManualLocation: (text: string) => Promise<void>;
+  selectPlace: (place: GeoResult) => Promise<void>;
 };
 
 async function loadCache(): Promise<CachedLocation | null> {
@@ -82,7 +85,15 @@ async function runGPSFlow(): Promise<CachedLocation> {
   });
   const { latitude: lat, longitude: lon } = pos.coords;
   const geo = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lon });
-  const cityName = geo[0]?.city ?? geo[0]?.region ?? strings.location_fallback_city;
+  const place  = geo[0];
+  const city   = place?.city;
+  // Normalize region to a USPS abbreviation for US results so GPS and manual
+  // selections format the same way (e.g. "California" → "CA").
+  const region = place?.isoCountryCode === 'US' ? toUsStateAbbrev(place?.region) : place?.region;
+  const cityName =
+    [city, region].filter(Boolean).join(', ') ||
+    region ||
+    strings.location_fallback_city;
   const loc: CachedLocation = { lat, lon, cityName };
   await saveCache(loc);
   return loc;
@@ -186,22 +197,26 @@ export function useWeather(): UseWeatherReturn {
     }
   }, [fetchAndSetOk]);
 
+  // Mark a manual-location attempt as in-flight in the right state slice.
+  const markManualResolving = useCallback(() => {
+    setState((prev) => {
+      if (prev.status === 'needs-location') {
+        return { ...prev, isResolving: true, locationError: undefined };
+      }
+      if (prev.status === 'ok') {
+        return { ...prev, isResolvingManual: true, manualLocationError: undefined };
+      }
+      return prev;
+    });
+  }, []);
+
   const setManualLocation = useCallback(
     async (text: string) => {
       const trimmed = text.trim();
       if (!trimmed) return;
 
       const gen = ++locationGenRef.current;
-
-      setState((prev) => {
-        if (prev.status === 'needs-location') {
-          return { ...prev, isResolving: true, locationError: undefined };
-        }
-        if (prev.status === 'ok') {
-          return { ...prev, isResolvingManual: true, manualLocationError: undefined };
-        }
-        return prev;
-      });
+      markManualResolving();
 
       try {
         const results = await Location.geocodeAsync(trimmed);
@@ -218,7 +233,27 @@ export function useWeather(): UseWeatherReturn {
         setState(locationErrorUpdater(strings.error_connection));
       }
     },
-    [fetchAndSetOk]
+    [fetchAndSetOk, markManualResolving]
+  );
+
+  const selectPlace = useCallback(
+    async (place: GeoResult) => {
+      const gen = ++locationGenRef.current;
+      markManualResolving();
+
+      // For US results, show the USPS state abbreviation so the display
+      // matches what reverseGeocodeAsync returns from GPS ("CA" not "California").
+      const region = place.countryCode === 'US' ? toUsStateAbbrev(place.admin1) : place.admin1;
+      const cityName = [place.name, region].filter(Boolean).join(', ');
+      try {
+        await saveCache({ lat: place.lat, lon: place.lon, cityName });
+        await fetchAndSetOk(place.lat, place.lon, cityName, gen);
+      } catch {
+        if (locationGenRef.current !== gen) return;
+        setState(locationErrorUpdater(strings.error_connection));
+      }
+    },
+    [fetchAndSetOk, markManualResolving]
   );
 
   useEffect(() => {
@@ -315,5 +350,5 @@ export function useWeather(): UseWeatherReturn {
     };
   }, [fetchAndSetOk, refresh]);
 
-  return { ...state, refresh, refreshGPSLocation, setManualLocation } as UseWeatherReturn;
+  return { ...state, refresh, refreshGPSLocation, setManualLocation, selectPlace } as UseWeatherReturn;
 }

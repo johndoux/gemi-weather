@@ -43,6 +43,7 @@ export default function HomeScreen() {
     return (
       <LocationInputScreen
         setManualLocation={weather.setManualLocation}
+        selectPlace={weather.selectPlace}
         isResolving={weather.isResolving}
         error={weather.locationError}
         canAskAgain={weather.canAskAgain}

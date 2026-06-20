@@ -51,4 +51,10 @@ export const strings = {
   tip_subtitle:    'Gemi is made with love. If it brings a smile to your little one, consider buying us a treat!',
   tip_unavailable: 'Tips are not available right now.',
   tip_thank_you:   'Thank you so much! 🎉',
+
+  // ── Place search ─────────────────────────────────────────────────────────
+  search_loading:        'Searching...',
+  search_no_results:     'No matching locations found',
+  search_network_error:  "Couldn't connect. Check your internet and try again.",
+  search_generic_error:  'Search failed. Please try again.',
 } as const;

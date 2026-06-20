@@ -94,16 +94,6 @@ export const inputColors = {
   },
 } as const;
 
-// ─── Elevation / Shadow ───────────────────────────────────────────────────────
-export const shadow = {
-  input: {
-    shadowColor:   '#000',
-    shadowOpacity: 0.06,
-    shadowRadius:  8,
-    shadowOffset:  { width: 0, height: 2 },
-  },
-} as const;
-
 // ─── Z-index ──────────────────────────────────────────────────────────────────
 export const zIndex = {
   cornerBtn: 10,

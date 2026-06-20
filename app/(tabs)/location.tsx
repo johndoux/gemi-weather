@@ -65,6 +65,7 @@ export default function LocationScreen() {
           isDay={isDay}
           onDismiss={navigateBack}
           setManualLocation={weather.setManualLocation}
+          selectPlace={weather.selectPlace}
           isResolving={isResolving}
           error={error}
           canAskAgain={weather.status === 'ok' ? weather.canUseGPS : true}
