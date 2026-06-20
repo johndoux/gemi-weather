@@ -44,6 +44,7 @@ interface MenuModalProps {
   visible: boolean;
   onClose: () => void;
   isDay: boolean;
+  iconColor?: string;
 }
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -86,11 +87,12 @@ type Theme = ReturnType<typeof buildTheme>;
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
-function CircleButton({ icon, onPress, label, theme }: {
+function CircleButton({ icon, onPress, label, theme, iconColor }: {
   icon: ComponentProps<typeof MaterialIcons>['name'];
   onPress: () => void;
   label: string;
   theme: Theme;
+  iconColor: string;
 }) {
   return (
     <Pressable
@@ -100,30 +102,32 @@ function CircleButton({ icon, onPress, label, theme }: {
       accessibilityRole="button"
       accessibilityLabel={label}
     >
-      <MaterialIcons name={icon} size={iconSize.sm} color={theme.text} />
+      <MaterialIcons name={icon} size={iconSize.sm} color={iconColor} />
     </Pressable>
   );
 }
 
-function PhaseHeader({ title, onBack, theme }: {
+function PhaseHeader({ title, onBack, theme, iconColor }: {
   title: string;
   onBack: () => void;
   theme: Theme;
+  iconColor: string;
 }) {
   return (
     <View style={styles.phaseHeader}>
-      <CircleButton icon="arrow-back" onPress={onBack} label="Go back" theme={theme} />
+      <CircleButton icon="arrow-back" onPress={onBack} label="Go back" theme={theme} iconColor={iconColor} />
       <Text style={[styles.phaseTitle, { fontFamily: fonts.bold, color: theme.text }]}>{title}</Text>
     </View>
   );
 }
 
-function MenuRow({ label, onPress, icon, iconSymbol, theme }: {
+function MenuRow({ label, onPress, icon, iconSymbol, theme, iconColor }: {
   label: string;
   onPress: () => void;
   icon?: ComponentProps<typeof MaterialIcons>['name'];
   iconSymbol?: ComponentProps<typeof IconSymbol>['name'];
   theme: Theme;
+  iconColor: string;
 }) {
   const scale      = useSharedValue(1);
   const scaleStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
@@ -163,8 +167,8 @@ function MenuRow({ label, onPress, icon, iconSymbol, theme }: {
       >
         <View style={styles.rowLeft}>
           {iconSymbol
-            ? <IconSymbol name={iconSymbol} size={iconSize.sm} color={theme.secondary} />
-            : <MaterialIcons name={icon!} size={iconSize.sm} color={theme.secondary} />
+            ? <IconSymbol name={iconSymbol} size={iconSize.sm} color={iconColor} />
+            : <MaterialIcons name={icon!} size={iconSize.sm} color={iconColor} />
           }
           <Text style={[styles.rowLabel, { fontFamily: fonts.semibold, color: theme.text }]}>{label}</Text>
         </View>
@@ -218,7 +222,7 @@ function TierRow({ tier, displayPrice, onPurchase, index, theme }: {
   );
 }
 
-function TipJarContent({ onBack, theme }: { onBack: () => void; theme: Theme }) {
+function TipJarContent({ onBack, theme, iconColor }: { onBack: () => void; theme: Theme; iconColor: string }) {
   const [products, setProducts] = useState<ProductIOS[]>([]);
   const [loading,  setLoading]  = useState(true);
   const [thankYou, setThankYou] = useState(false);
@@ -270,7 +274,7 @@ function TipJarContent({ onBack, theme }: { onBack: () => void; theme: Theme }) 
 
   return (
     <>
-      <PhaseHeader title={strings.menu_support} onBack={onBack} theme={theme} />
+      <PhaseHeader title={strings.menu_support} onBack={onBack} theme={theme} iconColor={iconColor} />
 
       {thankYou ? (
         <Text style={[styles.tipThankYou, { fontFamily: fonts.regular, color: theme.text }]}>
@@ -310,10 +314,10 @@ function TipJarContent({ onBack, theme }: { onBack: () => void; theme: Theme }) 
   );
 }
 
-function AckContent({ onBack, theme }: { onBack: () => void; theme: Theme }) {
+function AckContent({ onBack, theme, iconColor }: { onBack: () => void; theme: Theme; iconColor: string }) {
   return (
     <>
-      <PhaseHeader title={strings.menu_acknowledgements} onBack={onBack} theme={theme} />
+      <PhaseHeader title={strings.menu_acknowledgements} onBack={onBack} theme={theme} iconColor={iconColor} />
       <ScrollView
         bounces={false}
         showsVerticalScrollIndicator={false}
@@ -350,7 +354,7 @@ function AckContent({ onBack, theme }: { onBack: () => void; theme: Theme }) {
 
 // ─── Main modal ──────────────────────────────────────────────────────────────
 
-export function MenuModal({ visible, onClose, isDay }: MenuModalProps) {
+export function MenuModal({ visible, onClose, isDay, iconColor }: MenuModalProps) {
   const insets       = useSafeAreaInsets();
   const reduceMotion = useReducedMotion();
   const [phase,  setPhase]  = useState<Phase>('menu');
@@ -358,6 +362,7 @@ export function MenuModal({ visible, onClose, isDay }: MenuModalProps) {
 
   const isNight = !isDay && Platform.OS === 'ios';
   const theme   = useMemo(() => buildTheme(isNight), [isNight]);
+  const resolvedIconColor = iconColor ?? theme.secondary;
 
   // Version label built from native runtime values — never hardcoded
   const appVersion  = Constants.nativeAppVersion  ?? Constants.expoConfig?.version ?? '—';
@@ -501,6 +506,7 @@ export function MenuModal({ visible, onClose, isDay }: MenuModalProps) {
                 title={strings.menu_acknowledgements}
                 onBack={() => navigate('menu', 'pop')}
                 theme={theme}
+                iconColor={resolvedIconColor}
               />
               <View style={[styles.androidCard, { flex: 1, overflow: 'hidden' }]}>
                 <ScrollView bounces={false} showsVerticalScrollIndicator={false}>
@@ -548,18 +554,18 @@ export function MenuModal({ visible, onClose, isDay }: MenuModalProps) {
                     </Pressable>
                   </View>
                   <View style={styles.androidCard}>
-                    <MenuRow label={strings.menu_acknowledgements}     icon="menu-book"          onPress={() => navigate('acknowledgements', 'push')} theme={theme} />
+                    <MenuRow label={strings.menu_acknowledgements}     icon="menu-book"          onPress={() => navigate('acknowledgements', 'push')} theme={theme} iconColor={resolvedIconColor} />
                     <View style={styles.androidDivider} />
-                    <MenuRow label={strings.menu_location_permissions} iconSymbol="location.fill" onPress={handleLocationPermissions} theme={theme} />
+                    <MenuRow label={strings.menu_location_permissions} iconSymbol="location.fill" onPress={handleLocationPermissions} theme={theme} iconColor={resolvedIconColor} />
                     <View style={styles.androidDivider} />
-                    <MenuRow label={strings.menu_support}              icon="favorite"            onPress={() => navigate('tip-jar', 'push')} theme={theme} />
+                    <MenuRow label={strings.menu_support}              icon="favorite"            onPress={() => navigate('tip-jar', 'push')} theme={theme} iconColor={resolvedIconColor} />
                     <View style={styles.androidDivider} />
-                    <MenuRow label={strings.menu_write_review}         icon="star"                onPress={handleReview} theme={theme} />
+                    <MenuRow label={strings.menu_write_review}         icon="star"                onPress={handleReview} theme={theme} iconColor={resolvedIconColor} />
                   </View>
                 </>
               )}
               {phase === 'tip-jar' && (
-                <TipJarContent onBack={() => navigate('menu', 'pop')} theme={theme} />
+                <TipJarContent onBack={() => navigate('menu', 'pop')} theme={theme} iconColor={resolvedIconColor} />
               )}
             </ScrollView>
           )}
@@ -598,7 +604,7 @@ export function MenuModal({ visible, onClose, isDay }: MenuModalProps) {
 
         {phase === 'acknowledgements' ? (
           <Animated.View style={[styles.ackLayout, slideXStyle, { paddingBottom: Math.max(insets.bottom, spacing.md) }]}>
-            <AckContent onBack={() => navigate('menu', 'pop')} theme={theme} />
+            <AckContent onBack={() => navigate('menu', 'pop')} theme={theme} iconColor={resolvedIconColor} />
           </Animated.View>
         ) : (
           <Animated.View style={[{ flex: 1 }, slideXStyle]}>
@@ -617,14 +623,14 @@ export function MenuModal({ visible, onClose, isDay }: MenuModalProps) {
                     <Text style={[styles.headingTitle, { fontFamily: fonts.bold, color: theme.text }]}>
                       {strings.menu_settings}
                     </Text>
-                    <CircleButton icon="close" onPress={onClose} label="Close menu" theme={theme} />
+                    <CircleButton icon="close" onPress={onClose} label="Close menu" theme={theme} iconColor={resolvedIconColor} />
                   </View>
 
                   <View style={styles.rowGroup}>
-                    <MenuRow label={strings.menu_acknowledgements}     icon="menu-book"          onPress={() => navigate('acknowledgements', 'push')} theme={theme} />
-                    <MenuRow label={strings.menu_location_permissions} iconSymbol="location.fill" onPress={handleLocationPermissions} theme={theme} />
-                    <MenuRow label={strings.menu_support}              icon="favorite"            onPress={() => navigate('tip-jar', 'push')} theme={theme} />
-                    <MenuRow label={strings.menu_write_review}         icon="star"                onPress={handleReview} theme={theme} />
+                    <MenuRow label={strings.menu_acknowledgements}     icon="menu-book"          onPress={() => navigate('acknowledgements', 'push')} theme={theme} iconColor={resolvedIconColor} />
+                    <MenuRow label={strings.menu_location_permissions} iconSymbol="location.fill" onPress={handleLocationPermissions} theme={theme} iconColor={resolvedIconColor} />
+                    <MenuRow label={strings.menu_support}              icon="favorite"            onPress={() => navigate('tip-jar', 'push')} theme={theme} iconColor={resolvedIconColor} />
+                    <MenuRow label={strings.menu_write_review}         icon="star"                onPress={handleReview} theme={theme} iconColor={resolvedIconColor} />
                   </View>
 
                   <Text style={[styles.footer, { color: theme.secondary }]}>{versionLabel}</Text>
@@ -632,7 +638,7 @@ export function MenuModal({ visible, onClose, isDay }: MenuModalProps) {
               )}
 
               {phase === 'tip-jar' && (
-                <TipJarContent onBack={() => navigate('menu', 'pop')} theme={theme} />
+                <TipJarContent onBack={() => navigate('menu', 'pop')} theme={theme} iconColor={resolvedIconColor} />
               )}
             </ScrollView>
           </Animated.View>

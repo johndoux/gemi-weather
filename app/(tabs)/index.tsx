@@ -150,7 +150,7 @@ export default function HomeScreen() {
         </CornerButtonBg>
       </Pressable>
 
-      <MenuModal visible={menuVisible} onClose={() => setMenuVisible(false)} isDay={weather.isDay} />
+      <MenuModal visible={menuVisible} onClose={() => setMenuVisible(false)} isDay={weather.isDay} iconColor={palette.textMuted} />
     </LinearGradient>
   );
 }
